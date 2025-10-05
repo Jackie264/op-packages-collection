@@ -34,76 +34,67 @@ jobs:
           path: sdk
           key: openwrt-sdk-snapshot-x86-64
           
-      - name: Initialize SDK
+      - name: Initialization environment
         if: steps.cache-sdk.outputs.cache-hit != 'true'
         env:
-          url_sdk: https://archive.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+          url_sdk: https://archive.openwrt.org/releases/24.10.0/targets/x86/64/openwrt-sdk-24.10.0-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
         run: |
           wget ${{ env.url_sdk }}
-          file_name=$(basename "${{ env.url_sdk }}")
-          mkdir -p sdk && tar --zstd -xvf "$file_name" -C ./sdk --strip-components=1
-          cd sdk
+          file_name=$(echo ${{env.url_sdk}} | awk -F/ '{print $NF}')
+          mkdir sdk && tar --zstd -xvf $file_name -C ./sdk --strip-components=1
+          cd sdk  
           echo "src-git base https://github.com/openwrt/openwrt.git;main" > feeds.conf
           echo "src-git-full packages https://github.com/openwrt/packages.git;master" >> feeds.conf
           echo "src-git-full luci https://github.com/openwrt/luci.git;master" >> feeds.conf
           echo "src-git-full routing https://git.openwrt.org/feed/routing.git;master"  >> feeds.conf
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-          make download -j$(nproc)
-
-      - name: Sync third-party plugins into sdk/package
-        run: |
-          # 覆盖官方 luci-app-advanced-reboot
-          rm -rf sdk/feeds/luci/applications/luci-app-advanced-reboot sdk/package/feeds/luci/applications/luci-app-advanced-reboot
           rm -rf sdk/package/luci-app-advanced-reboot
           git clone --depth=1 https://github.com/stangri/luci-app-advanced-reboot.git sdk/package/luci-app-advanced-reboot
-
-          # 其它第三方插件（统一放 sdk/package 下，避免通配符与 symlink）
           git clone -b master https://github.com/jerrykuku/luci-theme-argon.git sdk/package/luci-theme-argon
           git clone --depth=1 https://github.com/muink/luci-app-natmapt.git sdk/package/luci-app-natmapt
           git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2.git sdk/package/luci-app-passwall2
           git clone --depth=1 https://github.com/gSpotx2f/luci-app-cpu-status.git sdk/package/luci-app-cpu-status
           git clone --depth=1 https://github.com/gSpotx2f/luci-app-log.git sdk/package/luci-app-log
+          ./scripts/feeds update -a
+          echo "CONFIG_PACKAGE_luci-theme-argon=m" > .config
+          echo "CONFIG_PACKAGE_luci-app-advanced-reboot=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-natmapt=m" > .config
+          echo "CONFIG_PACKAGE_luci-app-passwall2=m" > .config
+          echo "CONFIG_PACKAGE_luci-app-cpu-status=m" > .config
+          echo "CONFIG_PACKAGE_luci-app-log-viewer=m" > .config
+          ./scripts/feeds install -d n luci-theme-argon
+          make download -j$(nproc)
 
-      - name: Configure build (non-interactive)
+      - name: Configure packages
         run: |
           cd sdk
-          chmod +x ./scripts/config
-
-          # 基础开关
-          ./scripts/config --disable CONFIG_ALL_NONSHARED
-          ./scripts/config --disable CONFIG_ALL_KMODS
-          ./scripts/config --disable CONFIG_ALL
-          ./scripts/config --disable CONFIG_AUTOREMOVE
-
-          # 语言支持
-          ./scripts/config --enable CONFIG_LUCI_LANG_zh_Hans
-
-          # 插件选择
-          ./scripts/config --module CONFIG_PACKAGE_luci-theme-argon
-          ./scripts/config --module CONFIG_PACKAGE_luci-app-advanced-reboot
-          ./scripts/config --module CONFIG_PACKAGE_luci-app-passwall2
-          ./scripts/config --module CONFIG_PACKAGE_luci-app-natmapt
-          ./scripts/config --module CONFIG_PACKAGE_luci-app-cpu-status
-          ./scripts/config --module CONFIG_PACKAGE_luci-app-log
-
-          # libcurl 强制使用 mbedTLS
-          ./scripts/config --enable CONFIG_PACKAGE_libcurl
-          ./scripts/config --disable CONFIG_LIBCURL_OPENSSL
-          ./scripts/config --disable CONFIG_LIBCURL_WOLFSSL
-          ./scripts/config --enable CONFIG_LIBCURL_MBEDTLS
-
+          ./scripts/feeds install luci-theme-argon
+          ./scripts/feeds install luci-app-advanced-reboot
+          ./scripts/feeds install luci-app-natmapt
+          ./scripts/feeds install luci-app-passwall2
+          ./scripts/feeds install luci-app-cpu-status
+          ./scripts/feeds install luci-app-log-viewer
+          echo "CONFIG_ALL_NONSHARED=n" > .config
+          echo "CONFIG_ALL_KMODS=n" >> .config
+          echo "CONFIG_ALL=n" >> .config
+          echo "CONFIG_AUTOREMOVE=n" >> .config
+          echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
+          echo "CONFIG_PACKAGE_luci-theme-argon=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-advanced-reboot=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-natmapt=m" > .config
+          echo "CONFIG_PACKAGE_luci-app-passwall2=m" > .config
+          echo "CONFIG_PACKAGE_luci-app-cpu-status=m" > .config
+          echo "CONFIG_PACKAGE_luci-app-log-viewer=m" > .config
           make defconfig
-
+          
       - name: Compile packages from targets.txt
+        id: compile
         run: |
           set -e
-          make -C sdk defconfig
           while read pkg; do
             [ -z "$pkg" ] && continue
             echo "=== Building $pkg ==="
             if [ -d "sdk/package/$pkg" ]; then
-              make -C sdk package/$pkg/{clean,compile} -j"$(nproc)" V=s
+              make package/$pkg/{clean,compile} -j"$(nproc)" V=s
             else
               echo "ERROR: sdk/package/$pkg not found. Ensure clone step uses this exact directory name."
               exit 1
