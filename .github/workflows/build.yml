@@ -41,16 +41,18 @@ jobs:
           
       - name: Update feeds
         run: |
-          cd sdk
-          cp ../feeds.conf ./feeds.conf
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
+          cp feeds.conf sdk/feeds.conf
+          make -C sdk scripts/feeds update -a
+          make -C sdk scripts/feeds install -a
 
-      - name: Compile all packages from feeds
+      - name: Compile selected packages (from targets.txt)
         run: |
-          cd sdk
-          make defconfig
-          make package/feeds/*/*/compile -j$(nproc) V=s
+          make -C sdk defconfig
+          while read pkg; do
+            [ -z "$pkg" ] && continue
+            echo "=== Building $pkg ==="
+            make -C sdk package/feeds/*/$pkg/compile -j$(nproc) V=s || exit 1
+          done < targets.txt
 
       - name: Generate Packages index
         run: |
@@ -65,3 +67,4 @@ jobs:
           files: |
             sdk/bin/packages/*/*/*.ipk
             sdk/bin/packages/*/*/Packages*
+            
