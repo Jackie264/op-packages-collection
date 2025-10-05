@@ -47,13 +47,13 @@ jobs:
           echo "src-git-full packages https://github.com/openwrt/packages.git;master" >> feeds.conf
           echo "src-git-full luci https://github.com/openwrt/luci.git;master" >> feeds.conf
           echo "src-git-full routing https://git.openwrt.org/feed/routing.git;master"  >> feeds.conf
-          rm -rf package/downloads/luci-app-advanced-reboot
-          git clone --depth=1 https://github.com/stangri/luci-app-advanced-reboot.git package/downloads/luci-app-advanced-reboot
-          git clone -b master https://github.com/jerrykuku/luci-theme-argon.git package/downloads/luci-theme-argon
-          git clone --depth=1 https://github.com/muink/luci-app-natmapt.git package/downloads/luci-app-natmapt
-          git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2.git package/downloads/luci-app-passwall2
-          git clone --depth=1 https://github.com/gSpotx2f/luci-app-cpu-status.git package/downloads/luci-app-cpu-status
-          git clone --depth=1 https://github.com/gSpotx2f/luci-app-log.git package/downloads/luci-app-log
+          rm -rf package/luci-app-advanced-reboot
+          git clone --depth=1 https://github.com/stangri/luci-app-advanced-reboot.git package/luci-app-advanced-reboot
+          git clone -b master https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
+          git clone --depth=1 https://github.com/muink/luci-app-natmapt.git package/luci-app-natmapt
+          git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2.git package/luci-app-passwall2
+          git clone --depth=1 https://github.com/gSpotx2f/luci-app-cpu-status.git package/luci-app-cpu-status
+          git clone --depth=1 https://github.com/gSpotx2f/luci-app-log.git package/luci-app-log
           ./scripts/feeds update -a
           echo "CONFIG_PACKAGE_luci-theme-argon=m" > .config
           echo "CONFIG_PACKAGE_luci-app-advanced-reboot=m" >> .config
