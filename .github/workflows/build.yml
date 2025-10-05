@@ -30,9 +30,6 @@ jobs:
 
       - name: Prepare feeds.conf
         run: |
-          # 确保换行符是 Unix 格式
-          dos2unix feeds.conf
-
           # 如果缺少官方 feeds，就自动补上
           grep -q '^src-git packages ' feeds.conf || echo 'src-git packages https://github.com/openwrt/packages.git;openwrt-24.10' >> feeds.conf
           grep -q '^src-git luci ' feeds.conf || echo 'src-git luci https://github.com/openwrt/luci.git;openwrt-24.10' >> feeds.conf
