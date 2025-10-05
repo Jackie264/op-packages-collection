@@ -59,38 +59,39 @@ jobs:
           git clone --depth=1 https://github.com/stangri/luci-app-advanced-reboot.git sdk/package/luci-app-advanced-reboot
 
           # 其它第三方插件（统一放 sdk/package 下，避免通配符与 symlink）
-          rm -rf sdk/package/luci-theme-argon
           git clone -b master https://github.com/jerrykuku/luci-theme-argon.git sdk/package/luci-theme-argon
-
-          rm -rf sdk/package/luci-app-natmapt
           git clone --depth=1 https://github.com/muink/luci-app-natmapt.git sdk/package/luci-app-natmapt
-
-          rm -rf sdk/package/luci-app-passwall2
           git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2.git sdk/package/luci-app-passwall2
-
-          rm -rf sdk/package/luci-app-cpu-status
           git clone --depth=1 https://github.com/gSpotx2f/luci-app-cpu-status.git sdk/package/luci-app-cpu-status
-
-          rm -rf sdk/package/luci-app-log
           git clone --depth=1 https://github.com/gSpotx2f/luci-app-log.git sdk/package/luci-app-log
 
-      - name: Force curl to use mbedTLS
+      - name: Configure build (non-interactive)
         run: |
           cd sdk
-          # 强制 libcurl 使用 mbedTLS，避免 OpenSSL 3 缺失 des.h
-          echo "CONFIG_PACKAGE_libcurl=y" >> .config
-          sed -i '/CONFIG_LIBCURL_OPENSSL/d' .config || true
-          sed -i '/CONFIG_LIBCURL_WOLFSSL/d' .config || true
-          echo "CONFIG_LIBCURL_MBEDTLS=y" >> .config
+          chmod +x ./scripts/config
 
-          # 常用的最小化构建开关（可保留）
-          {
-            echo "CONFIG_ALL_NONSHARED=n"
-            echo "CONFIG_ALL_KMODS=n"
-            echo "CONFIG_ALL=n"
-            echo "CONFIG_AUTOREMOVE=n"
-            echo "CONFIG_LUCI_LANG_zh_Hans=y"
-          } >> .config
+          # 基础开关
+          ./scripts/config --disable CONFIG_ALL_NONSHARED
+          ./scripts/config --disable CONFIG_ALL_KMODS
+          ./scripts/config --disable CONFIG_ALL
+          ./scripts/config --disable CONFIG_AUTOREMOVE
+
+          # 语言支持
+          ./scripts/config --enable CONFIG_LUCI_LANG_zh_Hans
+
+          # 插件选择
+          ./scripts/config --module CONFIG_PACKAGE_luci-theme-argon
+          ./scripts/config --module CONFIG_PACKAGE_luci-app-advanced-reboot
+          ./scripts/config --module CONFIG_PACKAGE_luci-app-passwall2
+          ./scripts/config --module CONFIG_PACKAGE_luci-app-natmapt
+          ./scripts/config --module CONFIG_PACKAGE_luci-app-cpu-status
+          ./scripts/config --module CONFIG_PACKAGE_luci-app-log
+
+          # libcurl 强制使用 mbedTLS
+          ./scripts/config --enable CONFIG_PACKAGE_libcurl
+          ./scripts/config --disable CONFIG_LIBCURL_OPENSSL
+          ./scripts/config --disable CONFIG_LIBCURL_WOLFSSL
+          ./scripts/config --enable CONFIG_LIBCURL_MBEDTLS
 
           make defconfig
 
