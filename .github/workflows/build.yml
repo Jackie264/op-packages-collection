@@ -27,14 +27,10 @@ jobs:
           sudo -E apt-get -qq autoremove --purge
           sudo -E apt-get -qq clean
 
-      - name: Install CMake >= 3.31
-        run: |
-          echo "Install CMake = 3.31.9"
-          sudo apt-get update
-          sudo apt-get install -y wget
-          wget https://github.com/Kitware/CMake/releases/download/v3.31.9/cmake-3.31.9-linux-x86_64.sh
-          sudo sh cmake-3.31.9-linux-x86_64.sh --skip-license --prefix=/usr/local
-          echo "/usr/local/bin" >> $GITHUB_PATH
+      - name: Install latest CMake
+        uses: ssrobins/install-cmake@v1
+        with:
+          version: 3.31.9
 
       - name: Cache OpenWrt SDK
         id: cache-sdk
