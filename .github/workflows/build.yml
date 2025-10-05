@@ -14,8 +14,6 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v5
-        with:
-          path: .
 
       - name: Setup dependencies
         run: |
@@ -45,19 +43,30 @@ jobs:
           ./sdk/scripts/feeds update -a
           ./sdk/scripts/feeds install -a
 
-      - name: Clone third-party plugins into correct feeds subdirs
+      - name: Override luci-app-advanced-reboot
         run: |
           rm -rf sdk/feeds/luci/applications/luci-app-advanced-reboot
+          git clone --depth=1 https://github.com/stangri/luci-app-advanced-reboot.git sdk/feeds/luci/applications/luci-app-advanced-reboot
+          ./sdk/scripts/feeds install luci-app-advanced-reboot
 
-          # LuCI themes
+      - name: Clone third-party plugins
+        run: |
+          # LuCI theme
           git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git sdk/feeds/luci/themes/luci-theme-argon
+          ./sdk/scripts/feeds install luci-theme-argon
 
           # LuCI applications
           git clone --depth=1 https://github.com/muink/luci-app-natmapt.git sdk/feeds/luci/applications/luci-app-natmapt
-          git clone --depth=1 https://github.com/stangri/luci-app-advanced-reboot.git sdk/feeds/luci/applications/luci-app-advanced-reboot
+          ./sdk/scripts/feeds install luci-app-natmapt
+
           git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2.git sdk/feeds/luci/applications/luci-app-passwall2
+          ./sdk/scripts/feeds install luci-app-passwall2
+
           git clone --depth=1 https://github.com/gSpotx2f/luci-app-cpu-status.git sdk/feeds/luci/applications/luci-app-cpu-status
+          ./sdk/scripts/feeds install luci-app-cpu-status
+
           git clone --depth=1 https://github.com/gSpotx2f/luci-app-log.git sdk/feeds/luci/applications/luci-app-log
+          ./sdk/scripts/feeds install luci-app-log
           
       - name: Compile selected packages (from targets.txt)
         run: |
