@@ -1,0 +1,10 @@
+{
+  "packages": [
+    "luci-theme-argon",
+    "luci-app-natmapt",
+    "luci-app-advanced-reboot",
+    "luci-app-passwall2",
+    "luci-app-cpu-status",
+    "luci-app-log"
+  ]
+}
