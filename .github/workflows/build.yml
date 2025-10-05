@@ -62,6 +62,11 @@ jobs:
           echo "CONFIG_PACKAGE_luci-app-cpu-status=m" > .config
           echo "CONFIG_PACKAGE_luci-app-log-viewer=m" > .config
           ./scripts/feeds install -d n luci-theme-argon
+          ./scripts/feeds install -d n luci-app-advanced-reboot
+          ./scripts/feeds install -d n luci-app-natmapt
+          ./scripts/feeds install -d n luci-app-passwall2
+          ./scripts/feeds install -d n luci-app-cpu-status
+          ./scripts/feeds install -d n luci-app-log-viewer
           make download -j$(nproc)
 
       - name: Configure packages
