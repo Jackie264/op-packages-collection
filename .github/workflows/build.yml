@@ -104,7 +104,7 @@ jobs:
               echo "ERROR: package/$pkg not found. Ensure clone step uses this exact directory name."
               exit 1
             fi
-          done < targets.txt
+          done < ../targets.txt
           mv bin/packages/x86_64/base/ ../
           rm .config .config.old
           cd ..
