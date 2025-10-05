@@ -1,0 +1,46 @@
+name: Build OpenWrt Packages
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup OpenWrt SDK
+        run: |
+          wget https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+          tar -xf openwrt-sdk-*.tar.xz
+          mv openwrt-sdk-* sdk
+
+      - name: Update feeds
+        run: |
+          cd sdk
+          cp ../feeds.conf ./feeds.conf
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Compile all packages
+        run: |
+          cd sdk
+          make defconfig
+          make package/feeds/*/*/compile -j$(nproc) V=s
+
+      - name: Generate Packages index
+        run: |
+          cd sdk/bin/packages/*/*
+          ../../../../staging_dir/host/bin/opkg-make-index . > Packages
+          gzip -9c Packages > Packages.gz
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          files: |
+            sdk/bin/packages/*/*/*.ipk
+            sdk/bin/packages/*/*/Packages*
