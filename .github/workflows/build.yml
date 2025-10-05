@@ -98,10 +98,10 @@ jobs:
           while read pkg; do
             [ -z "$pkg" ] && continue
             echo "=== Building $pkg ==="
-            if [ -d "package/downloads/$pkg" ]; then
+            if [ -d "package/$pkg" ]; then
               make package/$pkg/{clean,compile} -j"$(nproc)" V=s
             else
-              echo "ERROR: package/downloads/$pkg not found. Ensure clone step uses this exact directory name."
+              echo "ERROR: package/$pkg not found. Ensure clone step uses this exact directory name."
               exit 1
             fi
           done < targets.txt
@@ -109,7 +109,7 @@ jobs:
       - name: Generate Packages index
         run: |
           # x86_64/base 路径为 SDK 的默认输出之一，生成索引
-          outdir=$(echo sdk/bin/packages/*/base)
+          outdir=$(echo bin/packages/*/base)
           cd "$outdir"
           ../../../../staging_dir/host/bin/opkg-make-index . > Packages
           gzip -9c Packages > Packages.gz
@@ -121,5 +121,5 @@ jobs:
           tag_name: latest
           name: Latest packages
           files: |
-            sdk/bin/packages/*/base/*.ipk
-            sdk/bin/packages/*/base/Packages*
+            bin/packages/*/base/*.ipk
+            bin/packages/*/base/Packages*
