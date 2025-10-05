@@ -47,6 +47,8 @@ jobs:
 
       - name: Clone third-party plugins into correct feeds subdirs
         run: |
+          rm -rf sdk/feeds/luci/applications/luci-app-advanced-reboot
+
           # LuCI themes
           git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git sdk/feeds/luci/themes/luci-theme-argon
 
