@@ -73,7 +73,7 @@ jobs:
         run: |
           cd sdk
           ./scripts/feeds install luci-theme-argon
-          ./scripts/feeds install luci-app-advanced-reboot
+          ./scripts/feeds install -f luci-app-advanced-reboot
           ./scripts/feeds install luci-app-natmapt
           ./scripts/feeds install luci-app-passwall2
           ./scripts/feeds install luci-app-cpu-status
@@ -94,7 +94,7 @@ jobs:
       - name: Compile packages from targets.txt
         id: compile
         run: |
-          set -e
+          cd sdk
           while read pkg; do
             [ -z "$pkg" ] && continue
             echo "=== Building $pkg ==="
@@ -105,7 +105,10 @@ jobs:
               exit 1
             fi
           done < targets.txt
-
+          mv bin/packages/x86_64/base/ ../
+          rm .config .config.old
+          cd ..
+          
       - name: Generate Packages index
         run: |
           # x86_64/base 路径为 SDK 的默认输出之一，生成索引
