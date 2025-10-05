@@ -42,8 +42,8 @@ jobs:
       - name: Update feeds
         run: |
           cp feeds.conf sdk/feeds.conf
-          make -C sdk scripts/feeds update -a
-          make -C sdk scripts/feeds install -a
+          ./sdk/scripts/feeds update -a
+          ./sdk/scripts/feeds install -a
 
       - name: Compile selected packages (from targets.txt)
         run: |
