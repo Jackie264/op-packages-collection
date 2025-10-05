@@ -28,53 +28,59 @@ jobs:
 
       - name: Prepare feeds.conf
         run: |
-          # 如果缺少官方 feeds，就自动补上
           grep -q '^src-git packages ' feeds.conf || echo 'src-git packages https://github.com/openwrt/packages.git;openwrt-24.10' >> feeds.conf
           grep -q '^src-git luci ' feeds.conf || echo 'src-git luci https://github.com/openwrt/luci.git;openwrt-24.10' >> feeds.conf
           grep -q '^src-git routing ' feeds.conf || echo 'src-git routing https://github.com/openwrt/routing.git;openwrt-24.10' >> feeds.conf
           grep -q '^src-git telephony ' feeds.conf || echo 'src-git telephony https://github.com/openwrt/telephony.git;openwrt-24.10' >> feeds.conf
+          echo "==== Final feeds.conf ====" && cat feeds.conf
 
-          echo "==== Final feeds.conf ===="
-          cat feeds.conf
-          
       - name: Update feeds
         run: |
           cp feeds.conf sdk/feeds.conf
           ./sdk/scripts/feeds update -a
           ./sdk/scripts/feeds install -a
 
-      - name: Override luci-app-advanced-reboot
+      - name: Place third-party plugins into sdk/package
         run: |
-          rm -rf sdk/feeds/luci/applications/luci-app-advanced-reboot
-          git clone --depth=1 https://github.com/stangri/luci-app-advanced-reboot.git sdk/feeds/luci/applications/luci-app-advanced-reboot
-          ./sdk/scripts/feeds install luci-app-advanced-reboot
+          # 覆盖官方 luci-app-advanced-reboot
+          rm -rf sdk/feeds/luci/applications/luci-app-advanced-reboot sdk/package/feeds/luci/applications/luci-app-advanced-reboot
+          rm -rf sdk/package/luci-app-advanced-reboot
+          git clone --depth=1 https://github.com/stangri/luci-app-advanced-reboot.git sdk/package/luci-app-advanced-reboot
 
-      - name: Clone third-party plugins
-        run: |
-          # LuCI theme
-          git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git sdk/feeds/luci/themes/luci-theme-argon
-          ./sdk/scripts/feeds install luci-theme-argon
+          # 其它第三方插件统一放在 sdk/package 下
+          rm -rf sdk/package/luci-theme-argon
+          git clone --depth=1 https://github.com/jerrykuku/luci-theme-argon.git sdk/package/luci-theme-argon
 
-          # LuCI applications
-          git clone --depth=1 https://github.com/muink/luci-app-natmapt.git sdk/feeds/luci/applications/luci-app-natmapt
-          ./sdk/scripts/feeds install luci-app-natmapt
+          rm -rf sdk/package/luci-app-natmapt
+          git clone --depth=1 https://github.com/muink/luci-app-natmapt.git sdk/package/luci-app-natmapt
 
-          git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2.git sdk/feeds/luci/applications/luci-app-passwall2
-          ./sdk/scripts/feeds install luci-app-passwall2
+          rm -rf sdk/package/luci-app-passwall2
+          git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2.git sdk/package/luci-app-passwall2
 
-          git clone --depth=1 https://github.com/gSpotx2f/luci-app-cpu-status.git sdk/feeds/luci/applications/luci-app-cpu-status
-          ./sdk/scripts/feeds install luci-app-cpu-status
+          rm -rf sdk/package/luci-app-cpu-status
+          git clone --depth=1 https://github.com/gSpotx2f/luci-app-cpu-status.git sdk/package/luci-app-cpu-status
 
-          git clone --depth=1 https://github.com/gSpotx2f/luci-app-log.git sdk/feeds/luci/applications/luci-app-log
-          ./sdk/scripts/feeds install luci-app-log
-          
-      - name: Compile selected packages (from targets.txt)
+          rm -rf sdk/package/luci-app-log
+          git clone --depth=1 https://github.com/gSpotx2f/luci-app-log.git sdk/package/luci-app-log
+
+      - name: Compile selected packages (from targets.txt, precise paths)
         run: |
           make -C sdk defconfig
           while read pkg; do
             [ -z "$pkg" ] && continue
-            echo "=== Building $pkg ==="
-            make -C sdk package/feeds/luci/*/$pkg/compile -j$(nproc) V=s || exit 1
+            echo "=== Resolving path for $pkg ==="
+            if [ -d "sdk/package/$pkg" ]; then
+              PKG_PATH="package/$pkg"
+            elif [ -d "sdk/package/feeds/luci/applications/$pkg" ]; then
+              PKG_PATH="package/feeds/luci/applications/$pkg"
+            elif [ -d "sdk/package/feeds/luci/themes/$pkg" ]; then
+              PKG_PATH="package/feeds/luci/themes/$pkg"
+            else
+              echo "ERROR: $pkg not found under sdk/package or sdk/package/feeds/luci/*/. Check clone step or naming."
+              exit 1
+            fi
+            echo "=== Building $pkg at $PKG_PATH ==="
+            make -C sdk "$PKG_PATH/compile" -j"$(nproc)" V=s || exit 1
           done < targets.txt
 
       - name: Generate Packages index
@@ -90,4 +96,3 @@ jobs:
           files: |
             sdk/bin/packages/*/*/*.ipk
             sdk/bin/packages/*/*/Packages*
-            
