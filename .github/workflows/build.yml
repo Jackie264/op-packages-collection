@@ -63,6 +63,18 @@ jobs:
           rm -rf sdk/package/luci-app-log
           git clone --depth=1 https://github.com/gSpotx2f/luci-app-log.git sdk/package/luci-app-log
 
+      - name: Force libcurl to use mbedTLS
+        run: |
+          # 确保 libcurl 被选中
+          echo "CONFIG_PACKAGE_libcurl=y" >> sdk/.config
+          # 禁用 OpenSSL / WolfSSL
+          sed -i '/CONFIG_LIBCURL_OPENSSL/d' sdk/.config
+          sed -i '/CONFIG_LIBCURL_WOLFSSL/d' sdk/.config
+          # 启用 mbedTLS
+          echo "CONFIG_LIBCURL_MBEDTLS=y" >> sdk/.config
+          # 重新生成配置
+          make -C sdk defconfig
+
       - name: Compile selected packages (from targets.txt, precise paths)
         run: |
           make -C sdk defconfig
