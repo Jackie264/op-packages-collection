@@ -40,13 +40,13 @@ jobs:
       run: |
         case ${{ matrix.target }} in
           aarch64_cortex-a53)
-            SDK_URL="https://downloads.openwrt.org/releases/24.10.0/targets/armvirt/64/openwrt-sdk-24.10.0-armvirt-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+            SDK_URL="https://archive.openwrt.org/releases/24.10.0/targets/qualcommax/ipq807x/openwrt-sdk-24.10.0-qualcommax-ipq807x_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
             ;;
           arm_cortex-a7_neon-vfpv4)
-            SDK_URL="https://downloads.openwrt.org/releases/24.10.0/targets/armvirt/32/openwrt-sdk-24.10.0-armvirt-32_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst"
+            SDK_URL="https://archive.openwrt.org/releases/24.10.0/targets/ipq40xx/generic/openwrt-sdk-24.10.0-ipq40xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst"
             ;;
           x86_64)
-            SDK_URL="https://downloads.openwrt.org/releases/24.10.0/targets/x86/64/openwrt-sdk-24.10.0-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+            SDK_URL="https://archive.openwrt.org/releases/24.10.0/targets/x86/64/openwrt-sdk-24.10.0-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
             ;;
         esac
         curl -fL -o sdk.tar.zst "$SDK_URL"
