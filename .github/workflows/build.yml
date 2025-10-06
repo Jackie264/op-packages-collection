@@ -1,147 +1,97 @@
-name: Build OpenWrt Packages
+name: Build-Packages
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
-
+  push:
+    branches: [ main ]
 env:
   TZ: Asia/Shanghai
   
 jobs:
   build:
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [aarch64_cortex-a53, arm_cortex-a7_neon-vfpv4, x86_64]
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      - name: Install dependencies
-        run: |
-          sudo -E apt-get -qq update
-          sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-            bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib \
-            g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev \
-            libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev \
-            libreadline-dev libssl-dev libtool libyaml-dev libz-dev lld llvm lrzsz mkisofs msmtp nano \
-            ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply python3-docutils \
-            python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs \
-            upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
-          sudo -E apt-get -qq autoremove --purge
-          sudo -E apt-get -qq clean
+    - name: Free disk space
+      run: |
+        echo "Before cleanup:"
+        df -h
+        sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc
+        sudo apt-get clean
+        echo "After cleanup:"
+        df -h
 
-      - name: Cache OpenWrt SDK
-        id: cache-sdk
-        uses: actions/cache@v3
-        with:
-          path: sdk
-          key: openwrt-sdk-snapshot-x86-64
-          
-      - name: Initialization environment
-        if: steps.cache-sdk.outputs.cache-hit != 'true'
-        env:
-          url_sdk: https://archive.openwrt.org/releases/24.10.0/targets/x86/64/openwrt-sdk-24.10.0-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-        run: |
-          echo "Install packages"
-          sudo -E apt-get -qq update
-          sudo -E apt-get -qq install ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-            bzip2 ccache clang cmake cpio curl device-tree-compiler ecj fastjar flex gawk gettext gcc-multilib \
-            g++-multilib git gnutls-dev gperf haveged help2man intltool lib32gcc-s1 libc6-dev-i386 libelf-dev \
-            libglib2.0-dev libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses-dev libpython3-dev \
-            libreadline-dev libssl-dev libtool libyaml-dev libz-dev lld llvm lrzsz mkisofs msmtp nano \
-            ninja-build p7zip p7zip-full patch pkgconf python3 python3-pip python3-ply python3-docutils \
-            python3-pyelftools qemu-utils re2c rsync scons squashfs-tools subversion swig texinfo uglifyjs \
-            upx-ucl unzip vim wget xmlto xxd zlib1g-dev zstd
-          sudo -E apt-get -qq autoremove --purge
-          sudo -E apt-get -qq clean
-          wget ${{ env.url_sdk }}
-          file_name=$(echo ${{env.url_sdk}} | awk -F/ '{print $NF}')
-          mkdir sdk && tar --zstd -xvf $file_name -C ./sdk --strip-components=1
-          cd sdk  
-          echo "src-git base https://github.com/openwrt/openwrt.git;main" > feeds.conf
-          echo "src-git-full packages https://github.com/openwrt/packages.git;master" >> feeds.conf
-          echo "src-git-full luci https://github.com/openwrt/luci.git;master" >> feeds.conf
-          echo "src-git-full routing https://git.openwrt.org/feed/routing.git;master"  >> feeds.conf
-          rm -rf package/luci-app-advanced-reboot
-          git clone --depth=1 https://github.com/stangri/luci-app-advanced-reboot.git package/luci-app-advanced-reboot
-          git clone -b master https://github.com/jerrykuku/luci-theme-argon.git package/luci-theme-argon
-          git clone --depth=1 https://github.com/muink/luci-app-natmapt.git package/luci-app-natmapt
-          git clone --depth=1 https://github.com/xiaorouji/openwrt-passwall2.git package/luci-app-passwall2
-          git clone --depth=1 https://github.com/gSpotx2f/luci-app-cpu-status.git package/luci-app-cpu-status
-          git clone --depth=1 https://github.com/gSpotx2f/luci-app-log.git package/luci-app-log
-          ./scripts/feeds update -a
-          echo "CONFIG_PACKAGE_luci-theme-argon=m" > .config
-          echo "CONFIG_PACKAGE_luci-app-advanced-reboot=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-natmapt=m" > .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2=m" > .config
-          echo "CONFIG_PACKAGE_luci-app-cpu-status=m" > .config
-          echo "CONFIG_PACKAGE_luci-app-log-viewer=m" > .config
-          ./scripts/feeds install -d n luci-theme-argon
-          ./scripts/feeds install -d n luci-app-advanced-reboot
-          ./scripts/feeds install -d n luci-app-natmapt
-          ./scripts/feeds install -d n luci-app-passwall2
-          ./scripts/feeds install -d n luci-app-cpu-status
-          ./scripts/feeds install -d n luci-app-log-viewer
-          make download -j$(nproc)
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential libncurses-dev zlib1g-dev gawk git gettext \
+          libssl-dev xsltproc rsync wget unzip python3 jq zstd
 
-      - name: Configure packages
-        run: |
-          cd sdk
-          ./scripts/feeds install luci-theme-argon
-          ./scripts/feeds install -f luci-app-advanced-reboot
-          ./scripts/feeds install luci-app-natmapt
-          ./scripts/feeds install luci-app-passwall2
-          ./scripts/feeds install luci-app-cpu-status
-          ./scripts/feeds install luci-app-log-viewer
-          echo "CONFIG_ALL_NONSHARED=n" > .config
-          echo "CONFIG_ALL_KMODS=n" >> .config
-          echo "CONFIG_ALL=n" >> .config
-          echo "CONFIG_AUTOREMOVE=n" >> .config
-          echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
-          echo "CONFIG_PACKAGE_luci-theme-argon=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-advanced-reboot=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-natmapt=m" > .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2=m" > .config
-          echo "CONFIG_PACKAGE_luci-app-cpu-status=m" > .config
-          echo "CONFIG_PACKAGE_luci-app-log-viewer=m" > .config
-          make defconfig
-          
-      - name: Compile packages from targets.txt
-        id: compile
-        run: |
-          cd sdk
-          while read pkg; do
-            [ -z "$pkg" ] && continue
-            echo "=== Building $pkg ==="
-            if [ -d "package/$pkg" ]; then
-              make package/$pkg/{clean,compile} -j"$(nproc)" V=s
-            else
-              echo "ERROR: package/$pkg not found. Ensure clone step uses this exact directory name."
-              exit 1
-            fi
-          done < ../targets.txt
-          mv bin/packages/x86_64/base/ ../
-          rm .config .config.old
-          cd ..
-          
-      - name: Generate Packages index
-        run: |
-          # x86_64/base 路径为 SDK 的默认输出之一，生成索引
-          outdir=$(echo bin/packages/*/base)
-          cd "$outdir"
-          ../../../../staging_dir/host/bin/opkg-make-index . > Packages
-          gzip -9c Packages > Packages.gz
-          ls -la
+    - name: Download OpenWrt SDK
+      run: |
+        case ${{ matrix.target }} in
+          aarch64_cortex-a53)
+            SDK_URL="https://downloads.openwrt.org/releases/24.10.0/targets/armvirt/64/openwrt-sdk-24.10.0-armvirt-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+            ;;
+          arm_cortex-a7_neon-vfpv4)
+            SDK_URL="https://downloads.openwrt.org/releases/24.10.0/targets/armvirt/32/openwrt-sdk-24.10.0-armvirt-32_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst"
+            ;;
+          x86_64)
+            SDK_URL="https://downloads.openwrt.org/releases/24.10.0/targets/x86/64/openwrt-sdk-24.10.0-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+            ;;
+        esac
+        curl -fL -o sdk.tar.zst "$SDK_URL"
+        mkdir openwrt
+        tar --zstd -xf sdk.tar.zst -C openwrt --strip-components=1
 
-      - name: Upload release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: latest
-          name: Latest packages
-          files: |
-            bin/packages/*/base/*.ipk
-            bin/packages/*/base/Packages*
+    - name: Copy packages
+      run: |
+        cp -r * openwrt/package/ || true
+
+    - name: Compile packages
+      run: |
+        cd openwrt
+        make defconfig
+        make package/compile -j$(nproc) V=s
+
+    - name: Generate feed index
+      run: |
+        mkdir -p artifacts/${{ matrix.target }}
+        PKG_DIR="artifacts/${{ matrix.target }}"
+        # 收集所有 ipk
+        find openwrt/bin/packages/ -name "*.ipk" -exec cp {} $PKG_DIR/ \;
+        cd $PKG_DIR
+        # 生成 Packages 索引
+        opkg-make-index . > Packages
+        gzip -9nc Packages > Packages.gz
+        cp Packages Packages.manifest
+
+    - name: Sign feed index
+      run: |
+        cd artifacts/${{ matrix.target }}
+        echo "${{ secrets.USIGN_SECRET }}" > usign.key
+        openwrt/staging_dir/host/bin/usign -S -m Packages -s usign.key -x Packages.sig
+        rm -f usign.key
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      if: github.ref == 'refs/heads/main'
+      with:
+        tag_name: packages-${{ github.run_number }}
+        name: "Packages Build #${{ github.run_number }} 🚀"
+        body: |
+          自动构建的 OpenWrt 包合集
+          - 架构: ${{ matrix.target }}
+          - 时间: $(date +'%Y-%m-%d %H:%M:%S')
+        files: artifacts/${{ matrix.target }}/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
