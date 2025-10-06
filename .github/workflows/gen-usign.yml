@@ -9,9 +9,9 @@ jobs:
     steps:
     - name: Download OpenWrt SDK (x86_64 示例)
       run: |
-        curl -fL -o sdk.tar.xz https://downloads.openwrt.org/releases/24.10.0/targets/x86/64/openwrt-sdk-24.10.0-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.xz
+        curl -fL -o sdk.tar.xz https://downloads.openwrt.org/releases/24.10.0/targets/x86/64/openwrt-sdk-24.10.0-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
         mkdir openwrt
-        tar -xf sdk.tar.xz -C openwrt --strip-components=1
+        tar --zstd -xf sdk.tar.zst -C openwrt --strip-components=1
 
     - name: Generate usign keypair
       run: |
