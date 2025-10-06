@@ -1,0 +1,21 @@
+name: Generate usign keypair
+
+on:
+  workflow_dispatch:
+
+jobs:
+  gen-key:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Install usign
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y usign
+
+    - name: Generate keypair
+      run: |
+        usign -G -s usign.sec -p usign.pub
+        echo "===== PUBLIC KEY ====="
+        cat usign.pub
+        echo "===== PRIVATE KEY ====="
+        cat usign.sec
