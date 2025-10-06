@@ -1,4 +1,4 @@
-name: Generate usign keypair with custom comment
+name: Generate usign keypair
 
 on:
   workflow_dispatch:
@@ -7,15 +7,16 @@ jobs:
   gen-key:
     runs-on: ubuntu-latest
     steps:
-    - name: Install build deps
-      run: sudo apt-get update && sudo apt-get install -y build-essential libssl-dev
-
-    - name: Build usign
+    - name: Download OpenWrt SDK (x86_64 示例)
       run: |
-        git clone https://git.openwrt.org/project/usign.git
-        cd usign && make && cd ..
-        ./usign/usign -G -s usign.sec -p usign.pub
-        # 替换第一行注释
+        curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/24.10.0/targets/x86/64/openwrt-sdk-24.10.0-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        mkdir openwrt
+        tar --zstd -xf sdk.tar.zst -C openwrt --strip-components=1
+
+    - name: Generate usign keypair
+      run: |
+        cd openwrt
+        staging_dir/host/bin/usign -G -s usign.sec -p usign.pub
         sed -i '1s/.*/untrusted comment: OpenWrt usign key of Jackie264/' usign.pub
         sed -i '1s/.*/untrusted comment: OpenWrt usign key of Jackie264/' usign.sec
         echo "===== PUBLIC KEY ====="
