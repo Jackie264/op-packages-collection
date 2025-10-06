@@ -1,0 +1,145 @@
+#
+# This is free software, lisence use MIT.
+# 
+# <https://github.com/Jackie264/op-packages-collection>
+#
+name: Merge-upstream
+on:
+  push:
+    paths:
+      - '.github/workflows/upstream.yml'
+      - '.gitignore'
+#      - '.github/diy/**'
+  schedule:
+    - cron: 0 */12 * * *
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'ssh'
+        required: false
+        default: 'true'
+  watch:
+    types: started
+  repository_dispatch:
+
+jobs:
+  merge:
+    if: github.event.repository.owner.id == github.event.sender.id || ! github.event.sender.id || github.event.sender.id == '125248570'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+    - name: Checkout
+      uses: actions/checkout@main
+      with:
+        fetch-depth: 0
+
+    - uses: de-vri-es/setup-git-credentials@v2
+      with:
+          credentials: https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/
+    
+    - name: Set git identity
+      run : |
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
+        sudo timedatectl set-timezone "Asia/Shanghai"
+
+    - name: Syn upstream
+      run: |
+        shopt -s extglob
+        set +e
+        git rm -r --cache * >/dev/null 2>&1 &
+        rm -rf `find ./* -maxdepth 0 -type d ! -name ".github/diy"` >/dev/null 2>&1
+        function git_clone() {
+          git clone --depth 1 $1 $2
+          if [ "$?" != 0 ]; then
+            echo "error on $1"
+            pid="$( ps -q $$ )"
+            kill $pid
+          fi
+        }
+        function git_sparse_clone() {
+        trap 'rm -rf "$tmpdir"' EXIT
+        branch="$1" curl="$2" && shift 2
+        rootdir="$PWD"
+        tmpdir="$(mktemp -d)" || exit 1
+        if [ ${#branch} -lt 10 ]; then
+        git clone -b "$branch" --depth 1 --filter=blob:none --sparse "$curl" "$tmpdir"
+        cd "$tmpdir"
+        else
+        git clone --filter=blob:none --sparse "$curl" "$tmpdir"
+        cd "$tmpdir"
+        git checkout $branch
+        fi
+        if [ "$?" != 0 ]; then
+            echo "error on $curl"
+            exit 1
+        fi
+        git sparse-checkout init --cone
+        git sparse-checkout set "$@"
+        mv -n $@ $rootdir/ || true
+        cd $rootdir
+        }
+        function mvdir() {
+        mv -n `find $1/* -maxdepth 0 -type d` ./
+        rm -rf $1
+        }
+        (
+        git_clone https://github.com/xiaorouji/openwrt-passwall-packages && mvdir openwrt-passwall-packages
+        git_clone https://github.com/xiaorouji/openwrt-passwall2 passwall2 && mv -n passwall2/luci-app-passwall2 ./;rm -rf passwall2
+        ) &
+        (
+        git_clone https://github.com/muink/openwrt-natmapt
+        git_clone https://github.com/muink/luci-app-natmapt
+        git_clone https://github.com/muink/openwrt-stuntman
+        ) &
+        (
+        git_clone https://github.com/gSpotx2f/luci-app-log
+        git_clone https://github.com/gSpotx2f/luci-app-cpu-status
+        ) &
+        (
+        git_clone https://github.com/jerrykuku/luci-theme-argon
+        git_clone https://github.com/stangri/luci-app-advanced-reboot
+        )
+
+    - name: Delete duplicated packages
+      run: |
+        shopt -s extglob
+        set +e
+        mv -n applications/!(luci-app-noddos|luci-app-filebrowser-go|luci-app-openvpn-server|luci-app-chrony|luci-app-kodexplorer|luci-app-cshark|luci-app-dnscrypt-proxy|luci-app-https-dns-proxy|luci-app-ssr-mudb-server|luci-app-ledtrig-*|luci-app-antiblock) ./ ; rm -Rf applications
+        mv -n lean/!(r8101|r8125|r8126|r8168) ./ ; rm -Rf lean
+        mv -n liep/!(luci-app-filebrowser) ./ ; rm -Rf liep
+        mv -n openwrt-app-actions/applications/* ./;rm -rf openwrt-app-actions
+        rm -Rf */.git
+        for pkg in $(ls -d .github/diy/packages/*); do
+          mv -f $pkg/Makefile.k $pkg/Makefile >/dev/null 2>&1 || true
+        done
+        cp -rf .github/diy/packages/* ./ || true
+        for pkg in $(ls -d .github/diy/packages/*); do
+          mv -f $pkg/Makefile $pkg/Makefile.k >/dev/null 2>&1 || true
+        done
+        rm -rf */.github
+
+    - name: Apply
+      run: |
+        Emoji=("🎉" "🤞" "✨" "🎁" "🎈" "🎄" "🎨" "💋" "🍓" "🍕" "🍉" "💐" "🌴" "🚀" "🛸" "🗽" "⛅" "🌈" "🔥" "⛄" "🐶" "🏅" "🦄" "🐤")
+        git add .
+        git commit -m "${Emoji[$[$RANDOM % ${#Emoji[@]}]]} Sync $(date +%Y-%m-%d" "%H:%M:%S)"
+        for pkg in $(git diff-tree --no-commit-id --name-only HEAD | grep -v "naiveproxy" | grep -v "luci-app-passwall"); do
+          if [ "$(grep "PKG_RELEASE" $pkg/Makefile)" ]; then
+            sed -i "s/PKG_RELEASE:=.*/PKG_RELEASE:=$(git rev-list --count main $pkg)/" $pkg/Makefile || true
+          fi
+        done
+        git reset --soft HEAD^
+        git add .
+        git commit -m "${Emoji[$[$RANDOM % ${#Emoji[@]}]]} Sync $(date +%Y-%m-%d" "%H:%M:%S)"
+        git push -f
+
+    - name: Delete workflow runs
+      uses: Mattraks/delete-workflow-runs@main
+      continue-on-error: true
+      with:
+        retain_days: 1
+        keep_minimum_runs: 3
+        
