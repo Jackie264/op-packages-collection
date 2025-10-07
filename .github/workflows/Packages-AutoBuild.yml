@@ -74,7 +74,7 @@ jobs:
         REPO_BRANCH="24.10.3"   # 固定 release 分支，保证内核匹配
         case "${{ matrix.target }}" in
           aarch64_cortex-a53)
-            echo "url=https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/qualcommax/ipq807x/openwrt-sdk-$REPO_BRANCH-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst" >> $GITHUB_OUTPUT
+            echo "url=https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/qualcommax/ipq807x/openwrt-sdk-$REPO_BRANCH-qualcommax-ipq807x_gcc-13.3.0_musl.Linux-x86_64.tar.zst" >> $GITHUB_OUTPUT
             ;;
           arm_cortex-a7_neon-vfpv4)
             echo "url=https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ipq40xx/generic/openwrt-sdk-$REPO_BRANCH-ipq40xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst" >> $GITHUB_OUTPUT
