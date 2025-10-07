@@ -122,7 +122,9 @@ jobs:
         cd openwrt
         touch .config
         sed -i '/CONFIG_PACKAGE_uboot/d' .config
-        echo "# CONFIG_PACKAGE_uboot-fritz4040 is not set" >> .config
+        for pkg in $(ls feeds/base/package/boot | grep uboot-fritz); do
+          echo "# CONFIG_PACKAGE_${pkg} is not set" >> .config
+        done
         echo "# CONFIG_PACKAGE_uboot-envtools is not set" >> .config
 
     - name: Compile packages
