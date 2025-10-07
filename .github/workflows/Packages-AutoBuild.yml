@@ -127,6 +127,11 @@ jobs:
         done
         echo "# CONFIG_PACKAGE_uboot-envtools is not set" >> .config
 
+    - name: Remove all u-boot-fritz packages
+      run: |
+        cd openwrt/feeds/base/package/boot
+        rm -rf uboot-fritz*
+        
     - name: Compile packages
       run: |
         cd openwrt
