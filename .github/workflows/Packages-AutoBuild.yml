@@ -132,11 +132,17 @@ jobs:
         cd openwrt/feeds/base/package/boot
         rm -rf uboot-fritz*
         
-    - name: Compile packages
+    - name: Compile repo packages
       run: |
         cd openwrt
         make defconfig
-        make package/compile -j$(nproc) V=s
+        for pkg in $(ls ../ | grep -v '^\.github$' | grep -v '^openwrt$'); do
+          if [ -d "../$pkg" ] && [ -f "../$pkg/Makefile" ]; then
+            echo ">>> Building package: $pkg"
+            cp -r ../$pkg package/
+            make package/$pkg/compile -j$(nproc) || make package/$pkg/compile V=s
+          fi
+        done
 
     - name: Generate feed index
       run: |
