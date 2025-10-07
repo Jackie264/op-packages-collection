@@ -100,7 +100,7 @@ jobs:
 
     - name: Copy packages
       run: |
-        cp -r * openwrt/package/ || true
+        rsync -a --exclude 'openwrt' ./ openwrt/package/
 
     - name: Compile packages
       run: |
