@@ -54,19 +54,6 @@ jobs:
         echo "date=$(date +'%m/%d_%Y_%H/%M')" >> $GITHUB_ENV
         echo "date2=$(date +'%m/%d %Y')" >> $GITHUB_ENV
         echo "date3=$(date +'%m.%d')" >> $GITHUB_ENV
-
-#    - name: Clone source code
-#      run: |
-#        set -v
-#        REPO_BRANCH="24.10-SNAPSHOT"
-#        echo "$REPO_BRANCH"
-#        if [ ${{matrix.target}} == "x86_64" ]; then
-#            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/x86/64/openwrt-sdk-$REPO_BRANCH-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-#        elif [ ${{matrix.target}} == "aarch64_cortex-a53" ]; then
-#            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/qualcommax/ipq807x/openwrt-sdk-$REPO_BRANCH-qualcommax-ipq807x_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-#        elif [[ ${{matrix.target}} == "arm_cortex-a7_neon-vfpv4" ]]; then
-#            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ipq40xx/generic/openwrt-sdk-$REPO_BRANCH-ipq40xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
-#        fi
         
     - name: Select SDK URL
       id: sdk
@@ -120,7 +107,7 @@ jobs:
         git clone https://github.com/grandway2025/packages_lang_rust -b 1.85.0 rust
         cd rust
         # 强制禁用 download-ci-llvm，避免 CI 上报错或 404
-        grep -rl "download-ci-llvm = true" . | xargs -r sed -i 's/download-ci-llvm *= *true/download-ci-llvm=false/g'
+        grep -rl "llvm.download-ci-llvm=true" . | xargs -r sed -i 's/download-ci-llvm *= *true/download-ci-llvm=false/g'
         echo "✅ Feed rust config patched (download-ci-llvm disabled)."
 
     - name: Copy packages
@@ -170,7 +157,7 @@ jobs:
               echo "🔧 Waiting for rust bootstrap to generate config.toml..."
               make package/rust/host-compile || true
               find build_dir/ -type f -path "*/rustc-*/config.toml" \
-                -exec sed -i 's/download-ci-llvm = true/download-ci-llvm = false/' {} +
+                -exec sed -i 's/download-ci-llvm *= *true/download-ci-llvm=false/g' {} +
               echo "✅ After patch, showing config.toml lines:"
               grep -R "download-ci-llvm" build_dir/ || true
               echo ""
