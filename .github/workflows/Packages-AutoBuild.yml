@@ -145,6 +145,9 @@ jobs:
       run: |
         cd openwrt
         make defconfig
+        # 在 build_dir 里二次修正 config.toml，确保生效
+        find build_dir/ -type f -path "*/rustc-*/config.toml" \
+          -exec sed -i 's/download-ci-llvm = true/download-ci-llvm = false/' {} +
         for pkg in $(ls ../ | grep -v '^\.github$' | grep -v '^openwrt$'); do
           if [ -d "../$pkg" ] && [ -f "../$pkg/Makefile" ]; then
             echo ">>> Building package: $pkg"
