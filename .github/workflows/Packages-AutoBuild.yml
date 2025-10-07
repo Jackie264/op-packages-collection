@@ -101,6 +101,18 @@ jobs:
         ln -sf /mnt/openwrt/build_dir openwrt/build_dir
         df -hT
 
+    - name: Update & install feeds
+      run: |
+        cd openwrt
+        ./scripts/feeds update -a
+        ./scripts/feeds install -a
+
+    - name: Patch golang feed (use sbwml)
+      run: |
+        cd openwrt/feeds/packages/lang
+        rm -rf golang
+        git clone https://github.com/sbwml/packages_lang_golang -b 25.x golang
+
     - name: Copy packages
       run: |
         rsync -a --exclude 'openwrt' ./ openwrt/package/
