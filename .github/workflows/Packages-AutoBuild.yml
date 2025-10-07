@@ -118,6 +118,9 @@ jobs:
         cd openwrt/feeds/packages/lang
         rm -rf rust
         git clone https://github.com/grandway2025/packages_lang_rust -b 1.85.0 rust
+        cd rust
+        # 强制禁用 download-ci-llvm，避免 CI 上报错或 404
+        grep -rl "download-ci-llvm = true" . | xargs -r sed -i 's/download-ci-llvm = true/download-ci-llvm = false/'
 
     - name: Copy packages
       run: |
