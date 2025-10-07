@@ -85,18 +85,18 @@ jobs:
         sudo mkdir -p -m 777 openwrt
         tar --zstd -xf sdk.tar.zst -C openwrt --strip-components=1
 
-#    - name: Free up disk space
-#      env:
-#        DEBIAN_FRONTEND: noninteractive
-#      run: |
-#        sudo mkdir -p -m 777 openwrt /mnt/openwrt/staging_dir /mnt/openwrt/build_dir /mnt/openwrt/bin  /mnt/openwrt/dl
-#        if [[ "$(echo "${{github.event.action}}" | grep "a-")" ]]; then
-#          ln -sf /mnt/openwrt/staging_dir openwrt/staging_dir
-#          ln -sf /mnt/openwrt/bin openwrt/bin
-#          ln -sf /mnt/openwrt/dl openwrt/dl
-#          ln -sf /mnt/openwrt/build_dir openwrt/build_dir
-#        fi
-#        df -hT
+    - name: Free up disk space
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo mkdir -p -m 777 openwrt /mnt/openwrt/staging_dir /mnt/openwrt/build_dir /mnt/openwrt/bin  /mnt/openwrt/dl
+        if [[ "$(echo "${{github.event.action}}" | grep "a-")" ]]; then
+          ln -sf /mnt/openwrt/staging_dir openwrt/staging_dir
+          ln -sf /mnt/openwrt/bin openwrt/bin
+          ln -sf /mnt/openwrt/dl openwrt/dl
+          ln -sf /mnt/openwrt/build_dir openwrt/build_dir
+        fi
+        df -hT
 
     - name: Copy packages
       run: |
