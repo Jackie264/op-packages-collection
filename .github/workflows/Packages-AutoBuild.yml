@@ -120,7 +120,7 @@ jobs:
         git clone https://github.com/grandway2025/packages_lang_rust -b 1.85.0 rust
         cd rust
         # 强制禁用 download-ci-llvm，避免 CI 上报错或 404
-        grep -rl "download-ci-llvm = true" . | xargs -r sed -i 's/download-ci-llvm = true/download-ci-llvm = false/'
+        grep -rl "download-ci-llvm = true" . | xargs -r sed -i 's/download-ci-llvm *= *true/download-ci-llvm=false/g'
         echo "✅ Feed rust config patched (download-ci-llvm disabled)."
 
     - name: Copy packages
@@ -142,6 +142,19 @@ jobs:
         cd openwrt/feeds/base/package/boot
         rm -rf uboot-fritz*
         
+    - name: Fix rust compile error (disable download-ci-llvm)
+      run: |
+        echo "🔧 Checking and patching Rust Makefile in build_dir..."
+        FILE="openwrt/build_dir/feeds/packages/lang/rust/Makefile"
+        if [ -f "$FILE" ]; then
+          sed -i 's/download-ci-llvm *= *true/download-ci-llvm=false/g' "$FILE"
+          echo "✅ Patched $FILE"
+          echo "---- After patch ----"
+          grep "download-ci-llvm" "$FILE" || echo "No download-ci-llvm line found."
+        else
+          echo "⚠️ Rust Makefile not found in build_dir yet, will be generated later."
+        fi
+
     - name: Compile repo packages
       run: |
         cd openwrt
