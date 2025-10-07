@@ -68,21 +68,26 @@ jobs:
 #            curl -fL -o sdk.tar.zst https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ipq40xx/generic/openwrt-sdk-$REPO_BRANCH-ipq40xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
 #        fi
         
-    - name: Download OpenWrt SDK
+    - name: Select SDK URL
+      id: sdk
       run: |
-        case ${{ matrix.target }} in
+        REPO_BRANCH="24.10.3"   # 固定 release 分支，保证内核匹配
+        case "${{ matrix.target }}" in
           aarch64_cortex-a53)
-            SDK_URL="https://downloads.openwrt.org/releases/24.10-SNAPSHOT/targets/qualcommax/ipq807x/openwrt-sdk-24.10-SNAPSHOT-qualcommax-ipq807x_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+            echo "url=https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/mediatek/filogic/openwrt-sdk-$REPO_BRANCH-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst" >> $GITHUB_OUTPUT
             ;;
           arm_cortex-a7_neon-vfpv4)
-            SDK_URL="https://downloads.openwrt.org/releases/24.10-SNAPSHOT/targets/ipq40xx/generic/openwrt-sdk-24.10-SNAPSHOT-ipq40xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst"
+            echo "url=https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/ipq40xx/generic/openwrt-sdk-$REPO_BRANCH-ipq40xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst" >> $GITHUB_OUTPUT
             ;;
           x86_64)
-            SDK_URL="https://downloads.openwrt.org/releases/24.10-SNAPSHOT/targets/x86/64/openwrt-sdk-24.10-SNAPSHOT-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+            echo "url=https://downloads.openwrt.org/releases/$REPO_BRANCH/targets/x86/64/openwrt-sdk-$REPO_BRANCH-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst" >> $GITHUB_OUTPUT
             ;;
         esac
-        curl -fL -o sdk.tar.zst "$SDK_URL"
-        sudo mkdir -p -m 777 openwrt
+
+    - name: Download and extract SDK
+      run: |
+        curl -fL -o sdk.tar.zst "${{ steps.sdk.outputs.url }}"
+        mkdir openwrt
         tar --zstd -xf sdk.tar.zst -C openwrt --strip-components=1
 
     - name: Free up disk space
@@ -105,9 +110,6 @@ jobs:
     - name: Compile packages
       run: |
         cd openwrt
-        cp -rf ./openwrt-sdk*/. ./ 2>/dev/null || true
-        cp -rf ./openwrt-sdk*/build_dir/. ./build_dir/ || true
-        cp -rf ./openwrt-sdk*/staging_dir/. ./staging_dir/ || true
         make defconfig
         make package/compile -j$(nproc) V=s
 
@@ -127,7 +129,7 @@ jobs:
       run: |
         cd artifacts/${{ matrix.target }}
         echo "${{ secrets.USIGN_SECRET }}" > usign.key
-        openwrt/staging_dir/host/bin/usign -S -m Packages -s usign.key -x Packages.sig
+        ../../openwrt/staging_dir/host/bin/usign -S -m Packages -s usign.key -x Packages.sig
         rm -f usign.key
 
     - name: Create GitHub Release
@@ -139,6 +141,7 @@ jobs:
         body: |
           自动构建的 OpenWrt 包合集
           - 架构: ${{ matrix.target }}
+          - SDK: 24.10.3
           - 时间: $(date +'%Y-%m-%d %H:%M:%S')
         files: artifacts/${{ matrix.target }}/*
       env:
