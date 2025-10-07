@@ -146,20 +146,23 @@ jobs:
       run: |
         cd openwrt
         make defconfig
-        # 在 build_dir 里二次修正 config.toml，确保生效
-        echo ""
-        echo ""
-        echo "🔧 Checking build_dir for config.toml..."
-        find build_dir/ -type f -path "*/rustc-*/config.toml" \
-          -exec sed -i 's/download-ci-llvm = true/download-ci-llvm = false/' {} +
-        echo "✅ After patch, showing all download-ci-llvm lines:"
-        grep -R --color=always "download-ci-llvm" build_dir/ || echo "No config.toml found yet."
-        echo ""
-        echo ""
         for pkg in $(ls ../ | grep -v '^\.github$' | grep -v '^openwrt$'); do
           if [ -d "../$pkg" ] && [ -f "../$pkg/Makefile" ]; then
             echo ">>> Building package: $pkg"
             cp -r ../$pkg package/
+            # 在编译 shadow-tls 前先 patch config.toml
+            if [ "$pkg" = "shadow-tls" ]; then
+              echo ""
+              echo ""
+              echo "🔧 Waiting for rust bootstrap to generate config.toml..."
+              make package/rust/host-compile || true
+              find build_dir/ -type f -path "*/rustc-*/config.toml" \
+                -exec sed -i 's/download-ci-llvm = true/download-ci-llvm = false/' {} +
+              echo "✅ After patch, showing config.toml lines:"
+              grep -R "download-ci-llvm" build_dir/ || true
+              echo ""
+              echo ""
+            fi
             make package/$pkg/compile -j$(nproc) || make package/$pkg/compile V=s
           fi
         done
