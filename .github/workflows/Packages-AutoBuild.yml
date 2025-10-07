@@ -109,6 +109,8 @@ jobs:
         # 强制禁用 download-ci-llvm，避免 CI 上报错或 404
         grep -rl "llvm.download-ci-llvm=true" . | xargs -r sed -i 's/--set=llvm.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/g'
         echo "✅ Feed rust config patched (download-ci-llvm disabled)."
+        grep "llvm.download-ci-llvm" "$FILE" || echo "No llvm.download-ci-llvm line found."
+        echo ""
 
     - name: Copy packages
       run: |
@@ -128,10 +130,11 @@ jobs:
       run: |
         cd openwrt/feeds/base/package/boot
         rm -rf uboot-fritz*
-        
-    - name: Fix rust compile error (disable download-ci-llvm)
+
+    - name: Prepare rust build_dir and patch
       run: |
-        echo "🔧 Checking and patching Rust Makefile in build_dir..."
+        echo "🔧 Triggering rust/host-compile to generate Makefile..."
+        make package/rust/host-compile || true
         FILE="openwrt/build_dir/feeds/packages/lang/rust/Makefile"
         if [ -f "$FILE" ]; then
           sed -i 's/--set=llvm.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/g' "$FILE"
@@ -139,9 +142,9 @@ jobs:
           echo "---- After patch ----"
           grep "llvm.download-ci-llvm" "$FILE" || echo "No llvm.download-ci-llvm line found."
         else
-          echo "⚠️ Rust Makefile not found in build_dir yet, will be generated later."
+          echo "⚠️ Still no Rust Makefile found, check feed sync."
         fi
-
+        
     - name: Compile repo packages
       run: |
         cd openwrt
@@ -157,9 +160,9 @@ jobs:
               echo "🔧 Waiting for rust bootstrap to generate config.toml..."
               make package/rust/host-compile || true
               find build_dir/ -type f -path "*/rustc-*/config.toml" \
-                -exec sed -i 's/download-ci-llvm *= *true/download-ci-llvm=false/g' {} +
+                -exec sed -i 's/llvm.download-ci-llvm = true/llvm.download-ci-llvm = false/g' {} +
               echo "✅ After patch, showing config.toml lines:"
-              grep -R "download-ci-llvm" build_dir/ || true
+              grep -R "llvm.download-ci-llvm" build_dir/ || true
               echo ""
               echo ""
             fi
