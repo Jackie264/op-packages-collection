@@ -113,7 +113,7 @@ jobs:
         rm -rf golang
         git clone https://github.com/sbwml/packages_lang_golang -b 25.x golang
 
-    - name: Patch rust feed (use sbwml)
+    - name: Patch rust feed (use grandway2025)
       run: |
         cd openwrt/feeds/packages/lang
         rm -rf rust
