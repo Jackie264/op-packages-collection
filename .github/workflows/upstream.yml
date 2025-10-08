@@ -60,30 +60,30 @@ jobs:
           fi
         }
         function git_sparse_clone() {
-        trap 'rm -rf "$tmpdir"' EXIT
-        branch="$1" curl="$2" && shift 2
-        rootdir="$PWD"
-        tmpdir="$(mktemp -d)" || exit 1
-        if [ ${#branch} -lt 10 ]; then
-        git clone -b "$branch" --depth 1 --filter=blob:none --sparse "$curl" "$tmpdir"
-        cd "$tmpdir"
-        else
-        git clone --filter=blob:none --sparse "$curl" "$tmpdir"
-        cd "$tmpdir"
-        git checkout $branch
-        fi
-        if [ "$?" != 0 ]; then
-            echo "error on $curl"
-            exit 1
-        fi
-        git sparse-checkout init --cone
-        git sparse-checkout set "$@"
-        mv -n $@ $rootdir/ || true
-        cd $rootdir
+          trap 'rm -rf "$tmpdir"' EXIT
+          branch="$1" curl="$2" && shift 2
+          rootdir="$PWD"
+          tmpdir="$(mktemp -d)" || exit 1
+          if [ ${#branch} -lt 10 ]; then
+            git clone -b "$branch" --depth 1 --filter=blob:none --sparse "$curl" "$tmpdir"
+            cd "$tmpdir"
+          else
+            git clone --filter=blob:none --sparse "$curl" "$tmpdir"
+            cd "$tmpdir"
+            git checkout $branch
+          fi
+          if [ "$?" != 0 ]; then
+              echo "error on $curl"
+              exit 1
+          fi
+          git sparse-checkout init --cone
+          git sparse-checkout set "$@"
+          mv -n $@ $rootdir/ || true
+          cd $rootdir
         }
         function mvdir() {
-        mv -n `find $1/* -maxdepth 0 -type d` ./
-        rm -rf $1
+          mv -n `find $1/* -maxdepth 0 -type d` ./
+          rm -rf $1
         }
         (
         git_clone https://github.com/xiaorouji/openwrt-passwall-packages && mvdir openwrt-passwall-packages
@@ -101,6 +101,9 @@ jobs:
         (
         git_clone https://github.com/jerrykuku/luci-theme-argon
         git_clone https://github.com/stangri/luci-app-advanced-reboot
+        ) &
+        (
+        git_sparse_clone master https://github.com/openwrt/packages.git lang/rust
         )
 
     - name: Delete duplicated packages
