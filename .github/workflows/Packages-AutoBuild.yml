@@ -171,13 +171,13 @@ jobs:
       run: |
         mkdir -p artifacts/${{ matrix.target }}
         PKG_DIR="artifacts/${{ matrix.target }}"
-        # 收集所有 ipk
         find openwrt/bin/packages/ -name "*.ipk" -exec cp {} $PKG_DIR/ \;
         cd $PKG_DIR
-        # 生成 Packages 索引
-        opkg-make-index . > Packages
+        # 使用 SDK 自带的 ipkg-make-index.sh 生成索引
+        ../../openwrt/staging_dir/host/bin/ipkg-make-index.sh . > Packages
         gzip -9nc Packages > Packages.gz
         cp Packages Packages.manifest
+        echo "✅ Feed index generated with ipkg-make-index.sh"
 
     - name: Sign feed index
       run: |
