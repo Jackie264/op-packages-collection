@@ -118,6 +118,18 @@ jobs:
 #        grep "llvm.download-ci-llvm" Makefile || echo "No llvm.download-ci-llvm line found."
 #        echo ""
 
+    - name: Patch rust Makefile to clean .orig files
+      run: |
+        echo "🔧 Patching feeds/packages/lang/rust/Makefile ..."
+        cat >> openwrt/feeds/packages/lang/rust/Makefile <<'EOF'
+
+define Build/Prepare
+	$(call Build/Prepare/Default)
+	find $(PKG_BUILD_DIR)/vendor -name '*.orig' -delete || true
+endef
+EOF
+        echo "✅ Patch applied to rust Makefile"
+        
     - name: Copy packages
       run: |
         rsync -a --exclude 'openwrt' --exclude 'rust' ./ openwrt/package/
@@ -136,17 +148,6 @@ jobs:
       run: |
         cd openwrt/feeds/base/package/boot
         rm -rf uboot-fritz*
-
-    - name: Clean Cargo.toml.orig (Rust vendor bug workaround)
-      run: |
-        echo "🧹 Cleaning up Cargo.toml.orig files..."
-        COUNT=$(find openwrt/build_dir/ -type f -name "Cargo.toml.orig" | wc -l)
-        if [ "$COUNT" -gt 0 ]; then
-          find openwrt/build_dir/ -type f -name "Cargo.toml.orig" -print -delete
-          echo "✅ Removed $COUNT Cargo.toml.orig file(s)."
-        else
-          echo "✨ No Cargo.toml.orig files found, nothing to clean."
-        fi
 
     - name: Compile repo packages
       run: |
