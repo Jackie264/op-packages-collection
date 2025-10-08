@@ -104,5 +104,11 @@ define Host/Install
 	)
 endef
 
+# 在这里插入 Build/Prepare 钩子
+define Build/Prepare
+	$(call Build/Prepare/Default)
+	find $(PKG_BUILD_DIR)/vendor -name '*.orig' -delete || true
+endef
+
 $(eval $(call HostBuild))
 $(eval $(call BuildPackage,rust))
