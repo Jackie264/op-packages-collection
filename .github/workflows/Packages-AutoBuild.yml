@@ -137,6 +137,17 @@ jobs:
         cd openwrt/feeds/base/package/boot
         rm -rf uboot-fritz*
 
+    - name: Clean Cargo.toml.orig (Rust vendor bug workaround)
+      run: |
+        echo "🧹 Cleaning up Cargo.toml.orig files..."
+        COUNT=$(find openwrt/build_dir/ -type f -name "Cargo.toml.orig" | wc -l)
+        if [ "$COUNT" -gt 0 ]; then
+          find openwrt/build_dir/ -type f -name "Cargo.toml.orig" -print -delete
+          echo "✅ Removed $COUNT Cargo.toml.orig file(s)."
+        else
+          echo "✨ No Cargo.toml.orig files found, nothing to clean."
+        fi
+
     - name: Compile repo packages
       run: |
         cd openwrt
