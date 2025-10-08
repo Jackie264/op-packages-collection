@@ -107,7 +107,14 @@ endef
 # 在这里插入 Build/Prepare 钩子
 define Build/Prepare
 	$(call Build/Prepare/Default)
-	find $(PKG_BUILD_DIR)/vendor -name '*.orig' -delete || true
+	@echo "🧹 [Build/Prepare] Cleaning Cargo.toml.orig files in $(PKG_BUILD_DIR)/vendor ..."
+	@COUNT=$$(find $(PKG_BUILD_DIR)/vendor -name '*.orig' | wc -l); \
+	if [ "$$COUNT" -gt 0 ]; then \
+		find $(PKG_BUILD_DIR)/vendor -name '*.orig' -print -delete; \
+		echo "✅ [Build/Prepare] Removed $$COUNT .orig file(s)."; \
+	else \
+		echo "✨ [Build/Prepare] No .orig files found."; \
+	fi
 endef
 
 $(eval $(call HostBuild))
