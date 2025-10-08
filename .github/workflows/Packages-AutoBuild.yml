@@ -100,12 +100,9 @@ jobs:
         rm -rf golang
         git clone https://github.com/sbwml/packages_lang_golang -b 25.x golang
 
-    - name: Patch rust feed (use grandway2025)
+    - name: Patch rust feed
       run: |
-        cd openwrt/feeds/packages/lang
-        rm -rf rust
-        git clone https://github.com/grandway2025/packages_lang_rust -b 1.85.0 rust
-        cd rust
+        cd openwrt/feeds/packages/lang/rust
         # 强制禁用 download-ci-llvm，避免 CI 上报错或 404
         sed -i 's/--set=llvm.download-ci-llvm *= *true/--set=llvm.download-ci-llvm=false/g' Makefile
         echo "✅ Feed rust config patched (download-ci-llvm disabled)."
@@ -162,7 +159,7 @@ jobs:
               find build_dir/ -type f -path "*/rustc-*/config.toml" \
                 -exec sed -i 's/llvm.download-ci-llvm = true/llvm.download-ci-llvm = false/g' {} +
               echo "✅ After patch, showing config.toml lines:"
-              grep -R "llvm.download-ci-llvm" build_dir/ || true
+              grep "llvm.download-ci-llvm" "build_dir/hostpkg/rustc-*/config.toml" || echo "No llvm.download-ci-llvm line found."
               echo ""
               echo ""
             fi
@@ -174,13 +171,13 @@ jobs:
       run: |
         mkdir -p artifacts/${{ matrix.target }}
         PKG_DIR="artifacts/${{ matrix.target }}"
-        # 收集所有 ipk
         find openwrt/bin/packages/ -name "*.ipk" -exec cp {} $PKG_DIR/ \;
         cd $PKG_DIR
-        # 生成 Packages 索引
-        opkg-make-index . > Packages
+        # 使用 SDK 自带的 ipkg-make-index.sh 生成索引
+        ../../openwrt/staging_dir/host/bin/ipkg-make-index.sh . > Packages
         gzip -9nc Packages > Packages.gz
         cp Packages Packages.manifest
+        echo "✅ Feed index generated with ipkg-make-index.sh"
 
     - name: Sign feed index
       run: |
