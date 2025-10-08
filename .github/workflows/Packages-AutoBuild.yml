@@ -100,14 +100,23 @@ jobs:
         rm -rf golang
         git clone https://github.com/sbwml/packages_lang_golang -b 25.x golang
 
-    - name: Patch rust feed
+    - name: Use upstream rust feed (from repo)
       run: |
-        cd openwrt/feeds/packages/lang/rust
-        # 强制禁用 download-ci-llvm，避免 CI 上报错或 404
-        sed -i 's/--set=llvm.download-ci-llvm *= *true/--set=llvm.download-ci-llvm=false/g' Makefile
-        echo "✅ Feed rust config patched (download-ci-llvm disabled)."
-        grep "llvm.download-ci-llvm" Makefile || echo "No llvm.download-ci-llvm line found."
+        echo "🔄 Replacing SDK rust feed with repo's lang/rust..."
+        rm -rf openwrt/feeds/packages/lang/rust
+        cp -r lang/rust openwrt/feeds/packages/lang/
+        echo "✅ Rust feed replaced with repo version"
+        grep "llvm.download-ci-llvm" openwrt/feeds/packages/lang/rust/Makefile || echo "ℹ️ No llvm.download-ci-llvm line found (likely >=1.90.0)"
         echo ""
+        
+#    - name: Patch rust feed
+#      run: |
+#        cd openwrt/feeds/packages/lang/rust
+#        # 强制禁用 download-ci-llvm，避免 CI 上报错或 404
+#        sed -i 's/--set=llvm.download-ci-llvm *= *true/--set=llvm.download-ci-llvm=false/g' Makefile
+#        echo "✅ Feed rust config patched (download-ci-llvm disabled)."
+#        grep "llvm.download-ci-llvm" Makefile || echo "No llvm.download-ci-llvm line found."
+#        echo ""
 
     - name: Copy packages
       run: |
@@ -127,42 +136,28 @@ jobs:
       run: |
         cd openwrt/feeds/base/package/boot
         rm -rf uboot-fritz*
-
-#    - name: Prepare rust build_dir and patch
-#      run: |
-#        echo "🔧 Triggering rust/host-compile to generate Makefile..."
-#        make package/rust/host-compile || true
-#        FILE="openwrt/build_dir/feeds/packages/lang/rust/Makefile"
-#        if [ -f "$FILE" ]; then
-#          sed -i 's/--set=llvm.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/g' "$FILE"
-#          echo "✅ Patched $FILE"
-#          echo "---- After patch ----"
-#          grep "llvm.download-ci-llvm" "$FILE" || echo "No llvm.download-ci-llvm line found."
-#        else
-#          echo "⚠️ Still no Rust Makefile found, check feed sync."
-#        fi
         
     - name: Compile repo packages
       run: |
         cd openwrt
         make defconfig
-        for pkg in $(ls ../ | grep -v '^\.github$' | grep -v '^openwrt$'); do
+        for pkg in $(ls ../ | grep -v '^\.github$' | grep -v '^openwrt$' | grep -v '^lang$'); do
           if [ -d "../$pkg" ] && [ -f "../$pkg/Makefile" ]; then
             echo ">>> Building package: $pkg"
             cp -r ../$pkg package/
             # 在编译 shadow-tls 前先 patch config.toml
-            if [ "$pkg" = "shadow-tls" ]; then
-              echo ""
-              echo ""
-              echo "🔧 Waiting for rust bootstrap to generate config.toml..."
-              make package/rust/host-compile || true
-              find build_dir/ -type f -path "*/rustc-*/config.toml" \
-                -exec sed -i 's/llvm.download-ci-llvm = true/llvm.download-ci-llvm = false/g' {} +
-              echo "✅ After patch, showing config.toml lines:"
-              grep "llvm.download-ci-llvm" "build_dir/hostpkg/rustc-*/config.toml" || echo "No llvm.download-ci-llvm line found."
-              echo ""
-              echo ""
-            fi
+#            if [ "$pkg" = "shadow-tls" ]; then
+#              echo ""
+#              echo ""
+#              echo "🔧 Waiting for rust bootstrap to generate config.toml..."
+#              make package/rust/host-compile || true
+#              find build_dir/ -type f -path "*/rustc-*/config.toml" \
+#                -exec sed -i 's/llvm.download-ci-llvm = true/llvm.download-ci-llvm = false/g' {} +
+#              echo "✅ After patch, showing config.toml lines:"
+#              grep "llvm.download-ci-llvm" "build_dir/hostpkg/rustc-*/config.toml" || echo "No llvm.download-ci-llvm line found."
+#              echo ""
+#              echo ""
+#            fi
             make package/$pkg/compile -j$(nproc) || make package/$pkg/compile V=s
           fi
         done
