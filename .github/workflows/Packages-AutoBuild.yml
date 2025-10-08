@@ -104,7 +104,7 @@ jobs:
       run: |
         echo "🔄 Replacing SDK rust feed with repo's lang/rust..."
         rm -rf openwrt/feeds/packages/lang/rust
-        cp -r lang/rust openwrt/feeds/packages/lang/
+        cp -r rust openwrt/feeds/packages/lang/
         echo "✅ Rust feed replaced with repo version"
         grep "llvm.download-ci-llvm" openwrt/feeds/packages/lang/rust/Makefile || echo "ℹ️ No llvm.download-ci-llvm line found (likely >=1.90.0)"
         echo ""
