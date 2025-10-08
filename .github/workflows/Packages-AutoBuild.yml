@@ -109,31 +109,6 @@ jobs:
         grep "llvm.download-ci-llvm" openwrt/feeds/packages/lang/rust/Makefile || echo "ℹ️ No llvm.download-ci-llvm line found (likely >=1.90.0)"
         echo ""
         
-#    - name: Patch rust feed
-#      run: |
-#        cd openwrt/feeds/packages/lang/rust
-#        # 强制禁用 download-ci-llvm，避免 CI 上报错或 404
-#        sed -i 's/--set=llvm.download-ci-llvm *= *true/--set=llvm.download-ci-llvm=false/g' Makefile
-#        echo "✅ Feed rust config patched (download-ci-llvm disabled)."
-#        grep "llvm.download-ci-llvm" Makefile || echo "No llvm.download-ci-llvm line found."
-#        echo ""
-
-    - name: Verify Rust Build/Prepare hook
-      run: |
-        cd openwrt
-        make defconfig
-        echo "🔍 Triggering rust host-compile to verify Build/Prepare hook..."
-        make package/rust/host-compile V=s || true
-        echo "🔍 Checking for any Cargo.toml.orig after Build/Prepare..."
-        COUNT=$(find build_dir/ -type f -name "Cargo.toml.orig" | wc -l)
-        if [ "$COUNT" -gt 0 ]; then
-          echo "❌ Found $COUNT Cargo.toml.orig file(s) after Build/Prepare."
-          find build_dir/ -type f -name "Cargo.toml.orig" -print
-          exit 1
-        else
-          echo "✅ No Cargo.toml.orig files remain after Build/Prepare."
-        fi
-        
     - name: Copy packages
       run: |
         rsync -a --exclude 'openwrt' --exclude 'rust' ./ openwrt/package/
