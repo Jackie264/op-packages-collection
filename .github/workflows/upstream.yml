@@ -102,9 +102,6 @@ jobs:
         (
         git_clone https://github.com/jerrykuku/luci-theme-argon
         git_clone https://github.com/stangri/luci-app-advanced-reboot
-        ) &
-        (
-        git_sparse_clone openwrt-24.10 https://github.com/openwrt/packages.git lang/rust
         )
 
     - name: Delete duplicated packages
