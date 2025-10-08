@@ -209,6 +209,7 @@ jobs:
           - platform: arm_cortex-a7_neon-vfpv4
             url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/sunxi/cortexa7/openwrt-sdk-24.10.3-sunxi-cortexa7_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
             sdk_ver: "24.10"
+
     steps:
       - name: Initialization ${{ matrix.platform }} compile environment
         run: |
