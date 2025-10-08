@@ -5,12 +5,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=rust
-PKG_VERSION:=1.90.0
+PKG_VERSION:=1.89.0
 PKG_RELEASE:=1
 
 PKG_SOURCE:=rustc-$(PKG_VERSION)-src.tar.xz
 PKG_SOURCE_URL:=https://static.rust-lang.org/dist/
-PKG_HASH:=6bfeaddd90ffda2f063492b092bfed925c4b8c701579baf4b1316e021470daac
+PKG_HASH:=0b9d55610d8270e06c44f459d1e2b7918a5e673809c592abed9b9c600e33d95a
 HOST_BUILD_DIR:=$(BUILD_DIR)/host/rustc-$(PKG_VERSION)-src
 
 PKG_MAINTAINER:=Luca Barbato <lu_zero@luminem.org>
@@ -102,19 +102,6 @@ define Host/Install
 		find . -mindepth 2 -maxdepth 2 -type f -name install.sh \
 			-execdir bash '{}' --prefix=$(STAGING_DIR)/host --disable-ldconfig \; ; \
 	)
-endef
-
-# 在这里插入 Build/Prepare 钩子
-define Build/Prepare
-	$(call Build/Prepare/Default)
-	@echo "🧹 [Build/Prepare] Cleaning Cargo.toml.orig files in $(PKG_BUILD_DIR)/vendor ..."
-	@COUNT=$$(find $(PKG_BUILD_DIR)/vendor -name '*.orig' | wc -l); \
-	if [ "$$COUNT" -gt 0 ]; then \
-		find $(PKG_BUILD_DIR)/vendor -name '*.orig' -print -delete; \
-		echo "✅ [Build/Prepare] Removed $$COUNT .orig file(s)."; \
-	else \
-		echo "✨ [Build/Prepare] No .orig files found."; \
-	fi
 endef
 
 $(eval $(call HostBuild))
