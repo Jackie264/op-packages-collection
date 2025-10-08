@@ -21,7 +21,6 @@ env:
   passwall2: ${{ github.repository }}
   packages: Jackie264/openwrt-passwall-packages
 
-
 jobs:
   job_check:
     name: Check Version
