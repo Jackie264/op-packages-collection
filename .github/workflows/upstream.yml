@@ -104,7 +104,7 @@ jobs:
         git_clone https://github.com/stangri/luci-app-advanced-reboot
         ) &
         (
-        git_sparse_clone master https://github.com/openwrt/packages.git lang/rust
+        git_sparse_clone openwrt-24.10 https://github.com/openwrt/packages.git lang/rust
         )
 
     - name: Delete duplicated packages
