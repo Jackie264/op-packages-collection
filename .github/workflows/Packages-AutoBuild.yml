@@ -107,9 +107,9 @@ jobs:
         git clone https://github.com/grandway2025/packages_lang_rust -b 1.85.0 rust
         cd rust
         # 强制禁用 download-ci-llvm，避免 CI 上报错或 404
-        grep -rl "llvm.download-ci-llvm=true" . | xargs -r sed -i 's/--set=llvm.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/g'
+        sed -i 's/--set=llvm.download-ci-llvm *= *true/--set=llvm.download-ci-llvm=false/g' Makefile
         echo "✅ Feed rust config patched (download-ci-llvm disabled)."
-        grep "llvm.download-ci-llvm" "$FILE" || echo "No llvm.download-ci-llvm line found."
+        grep "llvm.download-ci-llvm" Makefile || echo "No llvm.download-ci-llvm line found."
         echo ""
 
     - name: Copy packages
@@ -131,19 +131,19 @@ jobs:
         cd openwrt/feeds/base/package/boot
         rm -rf uboot-fritz*
 
-    - name: Prepare rust build_dir and patch
-      run: |
-        echo "🔧 Triggering rust/host-compile to generate Makefile..."
-        make package/rust/host-compile || true
-        FILE="openwrt/build_dir/feeds/packages/lang/rust/Makefile"
-        if [ -f "$FILE" ]; then
-          sed -i 's/--set=llvm.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/g' "$FILE"
-          echo "✅ Patched $FILE"
-          echo "---- After patch ----"
-          grep "llvm.download-ci-llvm" "$FILE" || echo "No llvm.download-ci-llvm line found."
-        else
-          echo "⚠️ Still no Rust Makefile found, check feed sync."
-        fi
+#    - name: Prepare rust build_dir and patch
+#      run: |
+#        echo "🔧 Triggering rust/host-compile to generate Makefile..."
+#        make package/rust/host-compile || true
+#        FILE="openwrt/build_dir/feeds/packages/lang/rust/Makefile"
+#        if [ -f "$FILE" ]; then
+#          sed -i 's/--set=llvm.download-ci-llvm=true/--set=llvm.download-ci-llvm=false/g' "$FILE"
+#          echo "✅ Patched $FILE"
+#          echo "---- After patch ----"
+#          grep "llvm.download-ci-llvm" "$FILE" || echo "No llvm.download-ci-llvm line found."
+#        else
+#          echo "⚠️ Still no Rust Makefile found, check feed sync."
+#        fi
         
     - name: Compile repo packages
       run: |
