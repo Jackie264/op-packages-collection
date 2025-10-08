@@ -136,7 +136,7 @@ jobs:
       run: |
         cd openwrt/feeds/base/package/boot
         rm -rf uboot-fritz*
-        
+
     - name: Compile repo packages
       run: |
         cd openwrt
@@ -145,19 +145,6 @@ jobs:
           if [ -d "../$pkg" ] && [ -f "../$pkg/Makefile" ]; then
             echo ">>> Building package: $pkg"
             cp -r ../$pkg package/
-            # 在编译 shadow-tls 前先 patch config.toml
-#            if [ "$pkg" = "shadow-tls" ]; then
-#              echo ""
-#              echo ""
-#              echo "🔧 Waiting for rust bootstrap to generate config.toml..."
-#              make package/rust/host-compile || true
-#              find build_dir/ -type f -path "*/rustc-*/config.toml" \
-#                -exec sed -i 's/llvm.download-ci-llvm = true/llvm.download-ci-llvm = false/g' {} +
-#              echo "✅ After patch, showing config.toml lines:"
-#              grep "llvm.download-ci-llvm" "build_dir/hostpkg/rustc-*/config.toml" || echo "No llvm.download-ci-llvm line found."
-#              echo ""
-#              echo ""
-#            fi
             make package/$pkg/compile -j$(nproc) || make package/$pkg/compile V=s
           fi
         done
