@@ -120,7 +120,7 @@ jobs:
 
     - name: Copy packages
       run: |
-        rsync -a --exclude 'openwrt' ./ openwrt/package/
+        rsync -a --exclude 'openwrt' --exclude 'rust' ./ openwrt/package/
 
     - name: Disable uboot packages
       run: |
@@ -141,7 +141,7 @@ jobs:
       run: |
         cd openwrt
         make defconfig
-        for pkg in $(ls ../ | grep -v '^\.github$' | grep -v '^openwrt$' | grep -v '^lang$'); do
+        for pkg in $(ls ../ | grep -v '^\.github$' | grep -v '^openwrt$' | grep -v '^rust$'); do
           if [ -d "../$pkg" ] && [ -f "../$pkg/Makefile" ]; then
             echo ">>> Building package: $pkg"
             cp -r ../$pkg package/
