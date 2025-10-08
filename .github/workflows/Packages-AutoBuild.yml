@@ -124,8 +124,8 @@ jobs:
         cat >> openwrt/feeds/packages/lang/rust/Makefile <<'EOF'
 
         define Build/Prepare
-	      $(call Build/Prepare/Default)
-	      find $(PKG_BUILD_DIR)/vendor -name '*.orig' -delete || true
+          $(call Build/Prepare/Default)
+          find $(PKG_BUILD_DIR)/vendor -name '*.orig' -delete || true
         endef
         EOF
         echo "✅ Patch applied to rust Makefile"
