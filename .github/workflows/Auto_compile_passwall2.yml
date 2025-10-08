@@ -210,6 +210,10 @@ jobs:
             url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/sunxi/cortexa7/openwrt-sdk-24.10.3-sunxi-cortexa7_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
             sdk_ver: "24.10"
 
+          #- platform: mipsel_mips32
+          #  url_sdk: https://downloads.openwrt.org/releases/24.10.0/targets/bcm47xx/generic/openwrt-sdk-24.10.0-bcm47xx-generic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+          #  sdk_ver: "24.10"
+
     steps:
       - name: Initialization ${{ matrix.platform }} compile environment
         run: |
