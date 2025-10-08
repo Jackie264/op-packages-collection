@@ -86,7 +86,6 @@ jobs:
           rm -rf $1
         }
         (
-        git_clone https://github.com/xiaorouji/openwrt-passwall-packages
         git_clone https://github.com/xiaorouji/openwrt-passwall2 passwall2 && mv -n passwall2/luci-app-passwall2 ./;rm -rf passwall2
         ) &
         (
