@@ -120,7 +120,7 @@ jobs:
 
     - name: Copy packages
       run: |
-        rsync -a --exclude 'openwrt' ./ openwrt/package/
+        rsync -a --exclude 'openwrt' --exclude 'rust' ./ openwrt/package/
 
     - name: Disable uboot packages
       run: |
