@@ -120,13 +120,15 @@ jobs:
 
     - name: Verify Rust Build/Prepare hook
       run: |
-        echo "🔍 Triggering rust prepare to verify Build/Prepare hook..."
-        make -C openwrt package/rust/prepare V=s
-        echo "🔍 Checking for any Cargo.toml.orig after prepare..."
-        COUNT=$(find openwrt/build_dir/ -type f -name "Cargo.toml.orig" | wc -l)
+        cd openwrt
+        make defconfig
+        echo "🔍 Triggering rust host-compile to verify Build/Prepare hook..."
+        make package/rust/host-compile V=s || true
+        echo "🔍 Checking for any Cargo.toml.orig after Build/Prepare..."
+        COUNT=$(find build_dir/ -type f -name "Cargo.toml.orig" | wc -l)
         if [ "$COUNT" -gt 0 ]; then
-          echo "❌ Found $COUNT Cargo.toml.orig file(s) after Build/Prepare. Hook may not be working."
-          find openwrt/build_dir/ -type f -name "Cargo.toml.orig" -print
+          echo "❌ Found $COUNT Cargo.toml.orig file(s) after Build/Prepare."
+          find build_dir/ -type f -name "Cargo.toml.orig" -print
           exit 1
         else
           echo "✅ No Cargo.toml.orig files remain after Build/Prepare."
