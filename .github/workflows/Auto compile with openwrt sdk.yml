@@ -191,9 +191,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{steps.build_tag.outputs.tag}}
-          name: Release ${{ needs.job_check.outputs.passwall2_version }} (${{ steps.build_tag.outputs.tag }})
+          name: Release ${{ steps.build_tag.outputs.tag }}
           files: ${{ env.FIRMWARE }}/passwall2/*.ipk
-          body_path: release.txt
 
 
   job_auto_compile:
