@@ -168,8 +168,8 @@ jobs:
           echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
           make defconfig
-          echo "make package/luci-app-passwall2/{clean,compile} -j$(nproc)"
-          make package/luci-app-passwall2/{clean,compile} -j$(nproc) V=s
+          echo "make package/feeds/passwall2/luci-app-passwall2/{clean,compile} -j$(nproc)"
+          make package/feeds/passwall2/luci-app-passwall2/{clean,compile} -j$(nproc) V=s
           mv bin/packages/x86_64/passwall2/ ../
           make clean
           rm .config .config.old
