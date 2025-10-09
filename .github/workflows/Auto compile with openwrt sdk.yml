@@ -109,6 +109,15 @@ jobs:
           sudo -E apt-get -qq autoremove --purge
           sudo -E apt-get -qq clean
 
+      - name: Check luci-app-passwall2 path
+        run: |
+          echo "Current workspace: ${GITHUB_WORKSPACE}"
+          ls -ld ${GITHUB_WORKSPACE}/luci-app-passwall2 || {
+            echo "❌ luci-app-passwall2 not found at ${GITHUB_WORKSPACE}/luci-app-passwall2"
+            exit 1
+          }
+          ls -l ${GITHUB_WORKSPACE}/luci-app-passwall2
+          
       - name: Initialization environment
         if: steps.cache-sdk.outputs.cache-hit != 'true'
         run: |
@@ -124,7 +133,6 @@ jobs:
             exit 1
           fi
           cd sdk
-          ls -l ${GITHUB_WORKSPACE}/luci-app-passwall2
 
           cat > feeds.conf.default << EOF
           src-git passwall_packages https://github.com/${{ env.packages }}.git;main
