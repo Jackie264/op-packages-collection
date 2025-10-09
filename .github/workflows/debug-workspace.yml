@@ -1,4 +1,6 @@
 name: Debug Workspace
+permissions:
+  contents: read
 
 on:
   workflow_dispatch:   # 手动触发
