@@ -20,7 +20,7 @@ on:
         default: 'false'
 env:
   TZ: Asia/Shanghai
-  passwall2: Jackie264/luci-app-passwall2
+  passwall2: Jackie264/openwrt-passwall2
   packages: Jackie264/openwrt-passwall-packages
 
 
