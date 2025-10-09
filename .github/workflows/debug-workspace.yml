@@ -1,0 +1,28 @@
+name: Debug Workspace
+
+on:
+  workflow_dispatch:   # 手动触发
+  push:                # 或者你也可以在 push 时触发
+    branches:
+      - main
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Debug workspace and repo contents
+        run: |
+          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE}"
+          echo "pwd=$(pwd)"
+          echo "git toplevel=$(git rev-parse --show-toplevel || true)"
+          echo "=== root listing ==="
+          ls -al "${GITHUB_WORKSPACE}" || true
+          echo "=== search luci-app-passwall2 (maxdepth 2) ==="
+          find "${GITHUB_WORKSPACE}" -maxdepth 2 -type d -name 'luci-app-passwall2' -print || true
+          echo "=== git files (grep luci-app-passwall2) ==="
+          git ls-tree -r HEAD --name-only | grep -E '^luci-app-passwall2(/|$)' || true
