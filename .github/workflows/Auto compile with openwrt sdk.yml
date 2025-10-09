@@ -7,8 +7,10 @@ permissions:
   contents: read
 on:
   push:
+    branches:
+      - main
     paths:
-      - 'luci-app-passwall2/Makefile'
+      - '**/Makefile'
   repository_dispatch:
   workflow_dispatch:
     inputs:
@@ -64,16 +66,16 @@ jobs:
           echo "**:minidisc: Passwall2 Version: ${{steps.check_version.outputs.latest_version}}**" >> release.txt
           touch release.txt
 
-      - name: Generate new tag & release
-        if: steps.check_version.outputs.has_update == 'true'
-        uses: softprops/action-gh-release@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{steps.check_version.outputs.latest_version}}
-          target_commitish: ${{ github.ref_name }}
-          prerelease: ${{steps.check_version.outputs.prerelease}}
-          body_path: release.txt
+#      - name: Generate new tag & release
+#        if: steps.check_version.outputs.has_update == 'true'
+#        uses: softprops/action-gh-release@v2
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        with:
+#          tag_name: ${{steps.check_version.outputs.latest_version}}
+#          target_commitish: ${{ github.ref_name }}
+#          prerelease: ${{steps.check_version.outputs.prerelease}}
+#          body_path: release.txt
 
 
   job_build_passwall2:
@@ -178,13 +180,19 @@ jobs:
           echo "status=success" >> $GITHUB_OUTPUT
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
+      - name: Set build tag
+        id: build_tag
+        if: steps.compile.outputs.status == 'success'
+        run: echo "tag=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+        
       - name: Upload passwall2 ipks to release
         uses: softprops/action-gh-release@v2
         if: steps.compile.outputs.status == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{needs.job_check.outputs.passwall2_version}}
+          tag_name: ${{steps.build_tag.outputs.tag}}
+          name: Release ${{ needs.job_check.outputs.passwall2_version }} (${{ steps.build_tag.outputs.tag }})
           files: ${{ env.FIRMWARE }}/passwall2/*.ipk
 
 
@@ -375,7 +383,18 @@ jobs:
 
           make defconfig
 
-
+      - name: Copy extra packages from repo root
+        run: |
+          mkdir -p sdk/package/custom
+          for dir in ../*; do
+            base=$(basename "$dir")
+            # 只处理目录，排除掉 .github 和 luci-app-passwall2
+            if [ -d "$dir" ] && [ "$base" != ".github" ] && [ "$base" != "luci-app-passwall2" ]; then
+              echo "Copying extra package: $base"
+              cp -r "$dir" sdk/package/custom/
+            fi
+          done
+          
       - name: ${{ matrix.platform }} download
         run: |
           cd sdk
@@ -400,6 +419,14 @@ jobs:
           make package/feeds/passwall_packages/tuic-client/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/v2ray-plugin/compile -j$(nproc) V=s
 
+          # 再编译你仓库根目录复制过来的额外包
+          if [ -d package/custom ]; then
+            for pkg in $(ls package/custom); do
+              echo "Compiling extra package: $pkg"
+              make package/custom/$pkg/compile -j$(nproc) V=s || true
+            done
+          fi
+          
           echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Organize ${{ matrix.platform }} files
@@ -407,9 +434,17 @@ jobs:
         if: steps.compile.outputs.status == 'success'
         run: |
           cd sdk
-          mkdir upload
+          mkdir -p upload/${{ matrix.platform }}/luci
+          mkdir -p upload/${{ matrix.platform }}/packages
 
-          cp bin/packages/*/passwall_packages/*.ipk upload/
+          find bin/packages -type f -name "*.ipk" | while read f; do
+            filename=$(basename "$f")
+            if [[ "$filename" == luci-* ]]; then
+              cp "$f" upload/${{ matrix.platform }}/luci/
+            else
+              cp "$f" upload/${{ matrix.platform }}/packages/
+            fi
+          done
 
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
           echo "status=success" >> $GITHUB_OUTPUT
@@ -439,13 +474,14 @@ jobs:
 
           touch release.txt
           echo "status=success" >> $GITHUB_OUTPUT
-
+        
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2
         if: steps.info.outputs.status == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{needs.job_check.outputs.passwall2_version}}
+          tag_name: ${{steps.build_tag.outputs.tag}}
+          name: Release ${{ needs.job_check.outputs.passwall2_version }} (${{ steps.build_tag.outputs.tag }})
           body_path: ${{ env.FIRMWARE }}/release.txt
-          files: ${{ env.FIRMWARE }}/upload/*.ipk
+          files: ${{ env.FIRMWARE }}/upload/**/*
