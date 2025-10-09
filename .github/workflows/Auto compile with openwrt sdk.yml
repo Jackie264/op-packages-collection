@@ -386,14 +386,18 @@ jobs:
       - name: Copy extra packages from repo root
         run: |
           mkdir -p sdk/package/custom
+          echo "=== Start copying extra packages ==="
           for dir in ./*; do
             base=$(basename "$dir")
-            # 只处理目录，排除掉 .github 和 luci-app-passwall2
             if [ -d "$dir" ] && [ "$base" != ".github" ] && [ "$base" != "sdk" ] && [ "$base" != "luci-app-passwall2" ]; then
               echo "Copying extra package: $base"
+              echo "[COPY] $base -> sdk/package/custom/$base"
               cp -r "$dir" sdk/package/custom/
+            else
+              echo "[SKIP] $base"
             fi
           done
+          echo "=== Copying done ==="
           
       - name: ${{ matrix.platform }} download
         run: |
@@ -419,13 +423,16 @@ jobs:
           make package/feeds/passwall_packages/tuic-client/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/v2ray-plugin/compile -j$(nproc) V=s
 
-          # 再编译你仓库根目录复制过来的额外包
+          echo "=== Start compiling custom packages ==="
           if [ -d package/custom ]; then
             for pkg in $(ls package/custom); do
               echo "Compiling extra package: $pkg"
               make package/custom/$pkg/compile -j$(nproc) V=s || true
             done
+          else
+            echo "No custom packages found."
           fi
+          echo "=== Custom package build finished ==="
           
           echo "status=success" >> $GITHUB_OUTPUT
 
