@@ -53,7 +53,7 @@ jobs:
           echo "has_update=true" >> $GITHUB_OUTPUT
           echo "prerelease=${prerelease}" >> $GITHUB_OUTPUT
           echo "latest_version: ${latest_version}"
-          echo "has_update: ${has_update}"
+          echo "has_update: true"
           echo "prerelease: ${prerelease}"
 
       - name: Prepare release
