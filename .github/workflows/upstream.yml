@@ -6,11 +6,13 @@
 name: Merge-upstream
 on:
   push:
+    branches:
+      - main
     paths:
       - '.github/workflows/upstream.yml'
       - '.gitignore'
   schedule:
-    - cron: 0 */12 * * *
+    - cron: 0 */4 * * *
   workflow_dispatch:
     inputs:
       ssh:
