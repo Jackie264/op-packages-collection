@@ -79,7 +79,7 @@ jobs:
 
 
   job_build_passwall2:
-    name: Build passwall2 [Luci ${{ matrix.luci_ver }}]
+    name: Build luci-app-passwall2 [${{ matrix.luci_ver }}]
     permissions:
       contents: write
     needs: job_check
