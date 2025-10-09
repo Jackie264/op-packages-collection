@@ -386,10 +386,10 @@ jobs:
       - name: Copy extra packages from repo root
         run: |
           mkdir -p sdk/package/custom
-          for dir in ../*; do
+          for dir in ./*; do
             base=$(basename "$dir")
             # 只处理目录，排除掉 .github 和 luci-app-passwall2
-            if [ -d "$dir" ] && [ "$base" != "op-packages-collection" ] && [ "$base" != ".github" ] && [ "$base" != "luci-app-passwall2" ]; then
+            if [ -d "$dir" ] && [ "$base" != ".github" ] && [ "$base" != "luci-app-passwall2" ]; then
               echo "Copying extra package: $base"
               cp -r "$dir" sdk/package/custom/
             fi
