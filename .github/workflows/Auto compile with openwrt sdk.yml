@@ -436,6 +436,11 @@ jobs:
           
           echo "status=success" >> $GITHUB_OUTPUT
 
+      - name: Set build tag
+        id: build_tag
+        if: steps.compile.outputs.status == 'success'
+        run: echo "tag=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+        
       - name: Organize ${{ matrix.platform }} files
         id: organize
         if: steps.compile.outputs.status == 'success'
