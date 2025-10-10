@@ -87,21 +87,21 @@ jobs:
           rm -rf $1
         }
         (
-        git_clone https://github.com/xiaorouji/openwrt-passwall2
+        git_clone https://github.com/xiaorouji/openwrt-passwall2 packages/openwrt-passwall2
         ) &
         (
-        git_clone https://github.com/muink/openwrt-natmapt
-        git_clone https://github.com/muink/luci-app-natmapt
-        git_clone https://github.com/muink/openwrt-stuntman
+        git_clone https://github.com/muink/openwrt-natmapt packages/openwrt-natmapt
+        git_clone https://github.com/muink/luci-app-natmapt packages/luci-app-natmapt
+        git_clone https://github.com/muink/openwrt-stuntman packages/openwrt-stuntman
         ) &
         (
-        git_clone https://github.com/gSpotx2f/luci-app-log
-        git_clone https://github.com/gSpotx2f/luci-app-cpu-status
-        git_clone https://github.com/gSpotx2f/luci-app-temp-status
+        git_clone https://github.com/gSpotx2f/luci-app-log packages/luci-app-log
+        git_clone https://github.com/gSpotx2f/luci-app-cpu-status packages/luci-app-cpu-status
+        git_clone https://github.com/gSpotx2f/luci-app-temp-status packages/luci-app-temp-status
         ) &
         (
-        git_clone https://github.com/jerrykuku/luci-theme-argon
-        git_clone https://github.com/stangri/luci-app-advanced-reboot
+        git_clone https://github.com/jerrykuku/luci-theme-argon packages/luci-theme-argon
+        git_clone https://github.com/stangri/luci-app-advanced-reboot packages/luci-app-advanced-reboot
         )
 
     - name: Delete duplicated packages
