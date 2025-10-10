@@ -29,7 +29,11 @@ find packages -name Makefile -type f | while read -r mk; do
           sub(/\.\.\/\.\.\/luci\.mk/, "$(TOPDIR)/feeds/luci/luci.mk")
         }
         print
-      }' Makefile > Makefile.new && mv Makefile.new Makefile
+      }' Makefile > Makefile.new
+
+      # 调试：显示替换前后差异
+      diff -u Makefile Makefile.new || true
+      mv Makefile.new Makefile
 
       # 在子模块内部生成 diff，写到绝对路径
       git diff Makefile >> "$PATCH_FILE" || true
