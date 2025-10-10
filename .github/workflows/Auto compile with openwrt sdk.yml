@@ -48,8 +48,6 @@ jobs:
 
       - name: Check version
         id: check_version
-#        env:
-#          url_tags: https://api.github.com/repos/${{ env.passwall2 }}/tags
         run: |
           cd packages/openwrt-passwall2/luci-app-passwall2
           latest_version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' Makefile | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
@@ -83,7 +81,7 @@ jobs:
 
 
   job_build_passwall2:
-    name: Build luci-app-passwall2 [${{ matrix.luci_ver }}]
+    name: Build luci- [${{ matrix.luci_ver }}]
     permissions:
       contents: write
     needs: job_check
@@ -142,7 +140,7 @@ jobs:
 
           cat > feeds.conf.default << EOF
           src-git passwall_packages https://github.com/${{ env.packages }}.git;main
-          src-link passwall2 ${GITHUB_WORKSPACE}/packages
+          src-link mypackage ${GITHUB_WORKSPACE}/packages
           src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ matrix.sdk_ver }}
           src-git packages https://github.com/openwrt/packages.git;openwrt-${{ matrix.sdk_ver }}
           src-git luci https://github.com/openwrt/luci.git;openwrt-${{ matrix.luci_ver }}
@@ -180,18 +178,34 @@ jobs:
           echo "CONFIG_ALL_KMODS=n" >> .config
           echo "CONFIG_ALL=n" >> .config
           echo "CONFIG_AUTOREMOVE=n" >> .config
-          echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
+          echo "CONFIG_LUCI_LANG_zh_Hans=n" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-advanced-reboot=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-cpu-status=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-log-viewer=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-natmapt=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-temp-status=m" >> .config
+          echo "CONFIG_PACKAGE_luci-theme-argon=m" >> .config
           make defconfig
           echo "make package/luci-app-passwall2/{clean,compile} -j$(nproc)"
           make package/luci-app-passwall2/{clean,compile} -j$(nproc) V=s
-          mv bin/packages/x86_64/passwall2/ ../
+          echo "make package/luci-app-advanced-reboot/{clean,compile} -j$(nproc)"
+          make package/luci-app-advanced-reboot/{clean,compile} -j$(nproc) V=s
+          echo "make package/luci-app-cpu-status/{clean,compile} -j$(nproc)"
+          make package/luci-app-cpu-status/{clean,compile} -j$(nproc) V=s
+          echo "make package/luci-app-log-viewer/{clean,compile} -j$(nproc)"
+          make package/luci-app-log-viewer/{clean,compile} -j$(nproc) V=s
+          echo "make package/luci-app-natmapt/{clean,compile} -j$(nproc)"
+          make package/luci-app-natmapt/{clean,compile} -j$(nproc) V=s
+          echo "make package/luci-app-temp-status/{clean,compile} -j$(nproc)"
+          make package/luci-app-temp-status/{clean,compile} -j$(nproc) V=s
+          echo "make package/luci-theme-argon/{clean,compile} -j$(nproc)"
+          make package/luci-theme-argon/{clean,compile} -j$(nproc) V=s
+          mv bin/packages/x86_64/mypackage/ ../
           make clean
           rm .config .config.old
-          rm -rf feeds/passwall2 feeds/passwall2.*
-          cd ../passwall2
-          for i in $(ls); do mv $i luci-${{ matrix.luci_ver }}_$i; done
-          cd ..
+          rm -rf feeds/mypackage feeds/passwall2.*
+
           echo "status=success" >> $GITHUB_OUTPUT
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
@@ -200,7 +214,7 @@ jobs:
         if: steps.compile.outputs.status == 'success'
         run: echo "tag=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
         
-      - name: Upload passwall2 ipks to release
+      - name: Upload mypackage ipks to release
         uses: softprops/action-gh-release@v2
         if: steps.compile.outputs.status == 'success'
         env:
@@ -208,7 +222,7 @@ jobs:
         with:
           tag_name: ${{steps.build_tag.outputs.tag}}
           name: Release ${{ steps.build_tag.outputs.tag }}
-          files: ${{ env.FIRMWARE }}/passwall2/*.ipk
+          files: ${{ env.FIRMWARE }}/mypackage/*.ipk
 
 
   job_auto_compile:
@@ -397,22 +411,6 @@ jobs:
           echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Plugin=y" >> .config
 
           make defconfig
-
-#      - name: Copy extra packages from repo root
-#        run: |
-#          mkdir -p sdk/package/custom
-#          echo "=== Start copying extra packages ==="
-#          for dir in ./*; do
-#            base=$(basename "$dir")
-#            if [ -d "$dir" ] && [ "$base" != ".github" ] && [ "$base" != "sdk" ] && [ "$base" != "luci-app-passwall2" ]; then
-#              echo "Copying extra package: $base"
-#              echo "[COPY] $base -> sdk/package/custom/$base"
-#              cp -r "$dir" sdk/package/custom/
-#            else
-#              echo "[SKIP] $base"
-#            fi
-#          done
-#          echo "=== Copying done ==="
           
       - name: ${{ matrix.platform }} download
         run: |
@@ -437,19 +435,7 @@ jobs:
           make package/feeds/passwall_packages/sing-box/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/tuic-client/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/v2ray-plugin/compile -j$(nproc) V=s
-          echo "status=success" >> $GITHUB_OUTPUT
-
-#          echo "=== Start compiling custom packages ==="
-#          if [ -d package/custom ]; then
-#            for pkg in $(ls package/custom); do
-#              echo "Compiling extra package: $pkg"
-#              make package/custom/$pkg/compile -j$(nproc) V=s || true
-#            done
-#          else
-#            echo "No custom packages found."
-#          fi
-#          echo "=== Custom package build finished ==="
-#          
+          echo "status=success" >> $GITHUB_OUTPUT          
 
       - name: Set build tag
         id: build_tag
