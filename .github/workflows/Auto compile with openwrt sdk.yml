@@ -155,7 +155,7 @@ jobs:
           echo ""
           echo "Fix luci.mk path for src-link packages"
           if [ -f feeds/luci/luci.mk ]; then
-            ln -sf ../../feeds/luci/luci.mk packages/luci.mk
+            ln -sf ../../feeds/luci/luci.mk ../packages/luci.mk
           fi
           echo ""
           echo ""
