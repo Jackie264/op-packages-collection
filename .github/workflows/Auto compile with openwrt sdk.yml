@@ -46,7 +46,7 @@ jobs:
 #        env:
 #          url_tags: https://api.github.com/repos/${{ env.passwall2 }}/tags
         run: |
-          cd packages/openwrt-passwall2/luci-app-passwall2
+          cd packages/luci-app-passwall2
           latest_version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' Makefile | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
           prerelease=$([ "${{ github.ref_name }}" == "main" ] && echo false || echo true)
           echo "latest_version=${latest_version}" >> $GITHUB_OUTPUT
