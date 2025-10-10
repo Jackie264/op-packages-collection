@@ -46,7 +46,7 @@ jobs:
 #        env:
 #          url_tags: https://api.github.com/repos/${{ env.passwall2 }}/tags
         run: |
-          cd luci-app-passwall2
+          cd openwrt-passwall2/luci-app-passwall2
           latest_version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' Makefile | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
           prerelease=$([ "${{ github.ref_name }}" == "main" ] && echo false || echo true)
           echo "latest_version=${latest_version}" >> $GITHUB_OUTPUT
@@ -126,7 +126,7 @@ jobs:
 
           cat > feeds.conf.default << EOF
           src-git passwall_packages https://github.com/${{ env.packages }}.git;main
-          src-git passwall2 https://github.com/${{ env.passwall2 }}.git;main
+          src-link passwall2 ${GITHUB_WORKSPACE}/packages
           src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ matrix.sdk_ver }}
           src-git packages https://github.com/openwrt/packages.git;openwrt-${{ matrix.sdk_ver }}
           src-git luci https://github.com/openwrt/luci.git;openwrt-${{ matrix.luci_ver }}
@@ -167,8 +167,8 @@ jobs:
           echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
           make defconfig
-          echo "make package/luci-app-passwall2/{clean,compile} -j$(nproc)"
-          make package/luci-app-passwall2/{clean,compile} -j$(nproc) V=s
+          echo "make package/feeds/mypackage/openwrt-passwall2/luci-app-passwall2/{clean,compile} -j$(nproc)"
+          make package/feeds/mypackage/openwrt-passwall2/luci-app-passwall2/{clean,compile} -j$(nproc) V=s
           mv bin/packages/x86_64/passwall2/ ../
           make clean
           rm .config .config.old
@@ -382,21 +382,21 @@ jobs:
 
           make defconfig
 
-      - name: Copy extra packages from repo root
-        run: |
-          mkdir -p sdk/package/custom
-          echo "=== Start copying extra packages ==="
-          for dir in ./*; do
-            base=$(basename "$dir")
-            if [ -d "$dir" ] && [ "$base" != ".github" ] && [ "$base" != "sdk" ] && [ "$base" != "luci-app-passwall2" ]; then
-              echo "Copying extra package: $base"
-              echo "[COPY] $base -> sdk/package/custom/$base"
-              cp -r "$dir" sdk/package/custom/
-            else
-              echo "[SKIP] $base"
-            fi
-          done
-          echo "=== Copying done ==="
+#      - name: Copy extra packages from repo root
+#        run: |
+#          mkdir -p sdk/package/custom
+#          echo "=== Start copying extra packages ==="
+#          for dir in ./*; do
+#            base=$(basename "$dir")
+#            if [ -d "$dir" ] && [ "$base" != ".github" ] && [ "$base" != "sdk" ] && [ "$base" != "luci-app-passwall2" ]; then
+#              echo "Copying extra package: $base"
+#              echo "[COPY] $base -> sdk/package/custom/$base"
+#              cp -r "$dir" sdk/package/custom/
+#            else
+#              echo "[SKIP] $base"
+#            fi
+#          done
+#          echo "=== Copying done ==="
           
       - name: ${{ matrix.platform }} download
         run: |
@@ -421,19 +421,19 @@ jobs:
           make package/feeds/passwall_packages/sing-box/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/tuic-client/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/v2ray-plugin/compile -j$(nproc) V=s
-
-          echo "=== Start compiling custom packages ==="
-          if [ -d package/custom ]; then
-            for pkg in $(ls package/custom); do
-              echo "Compiling extra package: $pkg"
-              make package/custom/$pkg/compile -j$(nproc) V=s || true
-            done
-          else
-            echo "No custom packages found."
-          fi
-          echo "=== Custom package build finished ==="
-          
           echo "status=success" >> $GITHUB_OUTPUT
+
+#          echo "=== Start compiling custom packages ==="
+#          if [ -d package/custom ]; then
+#            for pkg in $(ls package/custom); do
+#              echo "Compiling extra package: $pkg"
+#              make package/custom/$pkg/compile -j$(nproc) V=s || true
+#            done
+#          else
+#            echo "No custom packages found."
+#          fi
+#          echo "=== Custom package build finished ==="
+#          
 
       - name: Set build tag
         id: build_tag
