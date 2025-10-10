@@ -9,7 +9,6 @@ mkdir -p "$PATCH_DIR"
 > "$PATCH_FILE"
 
 echo "🔍 Scanning for '../../luci.mk' includes..."
-MODIFIED=0
 
 # 遍历 packages 下的 Makefile
 find packages -name Makefile -type f | while read -r mk; do
@@ -28,14 +27,13 @@ find packages -name Makefile -type f | while read -r mk; do
     # 生成 diff 并追加到补丁文件
     diff -u "$mk" "$mk.new" >> "$PATCH_FILE" || true
 
-    # 恢复原文件
+    # 删除临时文件，保持源码干净
     rm -f "$mk.new"
-
-    MODIFIED=1
   fi
 done
 
-if [ $MODIFIED -eq 1 ]; then
+# 判断补丁文件是否有内容
+if [ -s "$PATCH_FILE" ]; then
   echo "📦 Patch generated at $PATCH_FILE"
 else
   echo "✅ No Makefile needed patching."
