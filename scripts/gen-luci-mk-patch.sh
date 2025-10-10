@@ -4,40 +4,33 @@ set -euo pipefail
 PATCH_DIR="patches"
 PATCH_FILE="$PATCH_DIR/0001-fix-luci-mk-include.patch"
 
+# 确保补丁目录存在
 mkdir -p "$PATCH_DIR"
 
+# 保存当前修改状态
+git add packages
+
+# 扫描并替换所有 Makefile 中的 include ../../luci.mk
 echo "🔍 Scanning for '../../luci.mk' includes..."
-> "$PATCH_FILE"   # 清空旧补丁
-
-MODIFIED=0
-
-# 扫描 packages 下的 Makefile
-while IFS= read -r mk; do
+find packages -name Makefile -type f | while read -r mk; do
   if grep -q "include ../../luci.mk" "$mk"; then
     echo "⚡ Patching $mk"
-
-    # 备份原文件
-    cp "$mk" "$mk.orig"
-
-    # 替换
-    # sed -i "s#include ../../luci.mk#include \$(TOPDIR)/feeds/luci/luci.mk#" "$mk"
-    perl -pi -e 's#include ../../luci.mk#include $(TOPDIR)/feeds/luci/luci.mk#' "$mk"
-
-    # 生成 diff 并追加到补丁文件
-    # diff -u "$mk.orig" "$mk" >> "$PATCH_FILE" || true
-    # diff -u "$mk.orig" "$mk" | sed "s|^\(--- \|+++ \)$mk|\1$mk|" >> "$PATCH_FILE" || true
-    diff -u "$mk.orig" "$mk" | sed -E "s|^(---|\+\+\+) $mk|\1 $mk|" >> "$PATCH_FILE" || true
-
-    # 恢复原文件
-    mv "$mk.orig" "$mk"
-
-    MODIFIED=1
+    sed -i 's|include ../../luci.mk|include $(TOPDIR)/feeds/luci/luci.mk|' "$mk"
   fi
-done < <(find packages -name Makefile -type f)
+done
 
-if [ $MODIFIED -eq 1 ]; then
-  echo "📦 Patch generated at $PATCH_FILE"
+git -c status.submodulesummary=false diff
+
+# 如果有修改，生成补丁
+if ! git diff --quiet; then
+  echo "📦 Generating patch at $PATCH_FILE"
+  git diff > "$PATCH_FILE"
+
+  # 只恢复顶层 Git 已跟踪的文件，避免 warning
+  tracked_files=$(git diff --name-only | xargs -r git ls-files --error-unmatch 2>/dev/null || true)
+  if [ -n "$tracked_files" ]; then
+    git checkout -- $tracked_files
+  fi
 else
-  echo "✅ No Makefile needed patching, skipping patch generation."
-  rm -f "$PATCH_FILE"
+  echo "✅ No Makefile needed patching."
 fi
