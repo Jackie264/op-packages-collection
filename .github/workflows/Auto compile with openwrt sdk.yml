@@ -153,10 +153,17 @@ jobs:
 
           echo " "
           echo " "
-          echo "\033[32mFix luci.mk path for src-link packages\033[0m"
-          if [ -f feeds/luci/luci.mk ]; then
-            ln -sf feeds/luci/luci.mk ../luci.mk
-          fi
+          echo "\033[32mPatch luci.mk include\033[0m"
+          - name: Patch luci.mk include
+          run: |
+            # 进入源码目录
+            cd $GITHUB_WORKSPACE/packages/luci-app-advanced-reboot
+
+            # 用 sed 替换 include 行
+            sed -i 's|^\(include \)\.\./\.\./luci.mk|\1$(TOPDIR)/feeds/luci/luci.mk|' Makefile
+
+            # 打印确认
+            grep luci.mk Makefile
           echo " "
           echo " "
           
