@@ -20,7 +20,8 @@ while IFS= read -r mk; do
     cp "$mk" "$mk.orig"
 
     # 替换
-    sed -i 's#include ../../luci.mk#include $(TOPDIR)/feeds/luci/luci.mk#' "$mk"
+    # sed -i "s#include ../../luci.mk#include \$(TOPDIR)/feeds/luci/luci.mk#" "$mk"
+    perl -pi -e 's#include ../../luci.mk#include $(TOPDIR)/feeds/luci/luci.mk#' "$mk"
 
     # 生成 diff 并追加到补丁文件
     # diff -u "$mk.orig" "$mk" >> "$PATCH_FILE" || true
