@@ -174,7 +174,7 @@ jobs:
         run: |
           echo " "
           echo " "
-          echo "\033[32mPatch luci.mk include\033[0m"
+          echo "Patch luci.mk include"
           git apply patches/0001-fix-luci-mk-include.patch
           echo " "
           echo " "
