@@ -53,7 +53,7 @@ jobs:
           echo "Generate luci.mk patch then apply it..."
           chmod +x scripts/gen-luci-mk-patch.sh
           scripts/gen-luci-mk-patch.sh
-          git apply -p0 patches/0001-fix-luci-mk-include.patch
+          git apply -p1 patches/0001-fix-luci-mk-include.patch
           echo " "
           echo " "
           
