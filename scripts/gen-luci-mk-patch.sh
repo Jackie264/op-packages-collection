@@ -24,7 +24,8 @@ while IFS= read -r mk; do
 
     # 生成 diff 并追加到补丁文件
     # diff -u "$mk.orig" "$mk" >> "$PATCH_FILE" || true
-    diff -u "$mk.orig" "$mk" | sed "s|^\(--- \|+++ \)$mk|\1$mk|" >> "$PATCH_FILE" || true
+    # diff -u "$mk.orig" "$mk" | sed "s|^\(--- \|+++ \)$mk|\1$mk|" >> "$PATCH_FILE" || true
+    diff -u "$mk.orig" "$mk" | sed -E "s|^(---|\+\+\+) $mk|\1 $mk|" >> "$PATCH_FILE" || true
 
     # 恢复原文件
     mv "$mk.orig" "$mk"
