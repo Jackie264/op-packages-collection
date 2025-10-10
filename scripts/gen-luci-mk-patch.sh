@@ -32,14 +32,11 @@ find packages -name Makefile -type f | while read -r mk; do
       }' Makefile > Makefile.new
 
       # 调试：显示替换前后差异
-      diff -u Makefile Makefile.new || true
+      diff -u Makefile Makefile.new >> "$PATCH_FILE" || true
       mv Makefile.new Makefile
 
-      # 在子模块内部生成 diff，写到绝对路径
-      git diff Makefile >> "$PATCH_FILE" || true
-
       # 恢复文件，保持子模块干净
-      git checkout -- Makefile
+      rm -f Makeflie.new
     )
 
     MODIFIED=1
