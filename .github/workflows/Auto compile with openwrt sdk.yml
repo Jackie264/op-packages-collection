@@ -151,6 +151,15 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+          ehco ""
+          echo ""
+          echo "Fix luci.mk path for src-link packages"
+          if [ -f feeds/luci/luci.mk ]; then
+            ln -sf ../../feeds/luci/luci.mk packages/luci.mk
+          fi
+          echo ""
+          echo ""
+          
           #--------------------------------------begin_patches------------------------------------------
           echo "Start applying the patch"
 
@@ -170,7 +179,7 @@ jobs:
           echo "Patch application completed"
           #--------------------------------------end_patches--------------------------------------------
 
-      - name: Compile passwall2
+      - name: Compile luci-packages
         id: compile
         run: |
           cd sdk
@@ -187,18 +196,32 @@ jobs:
           echo "CONFIG_PACKAGE_luci-app-temp-status=m" >> .config
           echo "CONFIG_PACKAGE_luci-theme-argon=m" >> .config
           make defconfig
+          echo ""
+          echo ""
           echo "make package/luci-app-passwall2/{clean,compile} -j$(nproc)"
           make package/luci-app-passwall2/{clean,compile} -j$(nproc) V=s
+          echo ""
+          echo ""
           echo "make package/luci-app-advanced-reboot/{clean,compile} -j$(nproc)"
           make package/luci-app-advanced-reboot/{clean,compile} -j$(nproc) V=s
+          echo ""
+          echo ""
           echo "make package/luci-app-cpu-status/{clean,compile} -j$(nproc)"
           make package/luci-app-cpu-status/{clean,compile} -j$(nproc) V=s
+          echo ""
+          echo ""
           echo "make package/luci-app-log-viewer/{clean,compile} -j$(nproc)"
           make package/luci-app-log-viewer/{clean,compile} -j$(nproc) V=s
+          echo ""
+          echo ""
           echo "make package/luci-app-natmapt/{clean,compile} -j$(nproc)"
           make package/luci-app-natmapt/{clean,compile} -j$(nproc) V=s
+          echo ""
+          echo ""
           echo "make package/luci-app-temp-status/{clean,compile} -j$(nproc)"
           make package/luci-app-temp-status/{clean,compile} -j$(nproc) V=s
+          echo ""
+          echo ""
           echo "make package/luci-theme-argon/{clean,compile} -j$(nproc)"
           make package/luci-theme-argon/{clean,compile} -j$(nproc) V=s
           mv bin/packages/x86_64/mypackage/ ../
