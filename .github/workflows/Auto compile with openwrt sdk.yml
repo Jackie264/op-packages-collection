@@ -151,7 +151,7 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-          ehco ""
+          echo ""
           echo ""
           echo "Fix luci.mk path for src-link packages"
           if [ -f feeds/luci/luci.mk ]; then
