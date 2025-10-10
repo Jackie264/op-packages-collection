@@ -212,8 +212,8 @@ jobs:
           make package/luci-app-cpu-status/{clean,compile} -j$(nproc) V=s
           echo " "
           echo " "
-          echo "make package/luci-app-log-viewer/{clean,compile} -j$(nproc)"
-          make package/luci-app-log-viewer/{clean,compile} -j$(nproc) V=s
+          echo "make package/luci-app-log/{clean,compile} -j$(nproc)"
+          make package/luci-app-log/{clean,compile} -j$(nproc) V=s
           echo " "
           echo " "
           echo "make package/luci-app-natmapt/{clean,compile} -j$(nproc)"
