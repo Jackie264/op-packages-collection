@@ -1,0 +1,21 @@
+From 1234567890abcdef1234567890abcdef12345678 Mon Sep 17 00:00:00 2001
+From: Your Name <you@example.com>
+Date: Fri, 10 Oct 2025 18:30:00 +0800
+Subject: [PATCH] fix: use $(TOPDIR)/feeds/luci/luci.mk instead of ../../luci.mk
+
+---
+ packages/luci-app-advanced-reboot/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/packages/luci-app-advanced-reboot/Makefile b/packages/luci-app-advanced-reboot/Makefile
+index abcdef1..1234567 100644
+--- a/packages/luci-app-advanced-reboot/Makefile
++++ b/packages/luci-app-advanced-reboot/Makefile
+@@ -26,7 +26,7 @@ LUCI_DESCRIPTION:=Advanced Reboot Web UI
+ LUCI_PKGARCH:=all
+ LUCI_DEPENDS:=+uclient-fetch
+ 
+-include ../../luci.mk
++include $(TOPDIR)/feeds/luci/luci.mk
+ 
+# call BuildPackage - OpenWrt buildroot signature
