@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 使用绝对路径，避免 cd 子模块后路径丢失
 ROOT_DIR="$(pwd)"
 PATCH_DIR="$ROOT_DIR/patches"
 PATCH_FILE="$PATCH_DIR/0001-fix-luci-mk-include.patch"
@@ -18,26 +17,19 @@ find packages -name Makefile -type f | while read -r mk; do
   if grep -qE '^[[:space:]]*include[[:space:]]+\.\./\.\./luci\.mk' "$mk"; then
     echo "⚡ Patching $mk"
 
-    subdir=$(dirname "$mk")
+    # 用 awk 替换，只改真正的 include 行
+    awk '{
+      if ($0 ~ /^[[:space:]]*include[[:space:]]+\.\.\/\.\.\/luci\.mk/) {
+        sub(/\.\.\/\.\.\/luci\.mk/, "$(TOPDIR)/feeds/luci/luci.mk")
+      }
+      print
+    }' "$mk" > "$mk.new"
 
-    (
-      cd "$subdir"
+    # 生成 diff 并追加到补丁文件
+    diff -u "$mk" "$mk.new" >> "$PATCH_FILE" || true
 
-      # 用 awk 替换，只改真正的 include 行
-      awk '{
-        if ($0 ~ /^[[:space:]]*include[[:space:]]+\.\.\/\.\.\/luci\.mk/) {
-          sub(/\.\.\/\.\.\/luci\.mk/, "$(TOPDIR)/feeds/luci/luci.mk")
-        }
-        print
-      }' Makefile > Makefile.new
-
-      # 调试：显示替换前后差异
-      diff -u Makefile Makefile.new >> "$PATCH_FILE" || true
-      mv Makefile.new Makefile
-
-      # 恢复文件，保持子模块干净
-      rm -f Makeflie.new
-    )
+    # 恢复原文件
+    rm -f "$mk.new"
 
     MODIFIED=1
   fi
