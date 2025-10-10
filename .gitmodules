@@ -1,0 +1,35 @@
+[submodule "packages/openwrt-passwall2"]
+    path = packages/openwrt-passwall2
+    url = https://github.com/xiaorouji/openwrt-passwall2
+
+[submodule "packages/openwrt-natmapt"]
+    path = packages/openwrt-natmapt
+    url = https://github.com/muink/openwrt-natmapt
+
+[submodule "packages/luci-app-natmapt"]
+    path = packages/luci-app-natmapt
+    url = https://github.com/muink/luci-app-natmapt
+
+[submodule "packages/openwrt-stuntman"]
+    path = packages/openwrt-stuntman
+    url = https://github.com/muink/openwrt-stuntman
+
+[submodule "packages/luci-app-log"]
+    path = packages/luci-app-log
+    url = https://github.com/gSpotx2f/luci-app-log
+
+[submodule "packages/luci-app-cpu-status"]
+    path = packages/luci-app-cpu-status
+    url = https://github.com/gSpotx2f/luci-app-cpu-status
+
+[submodule "packages/luci-app-temp-status"]
+    path = packages/luci-app-temp-status
+    url = https://github.com/gSpotx2f/luci-app-temp-status
+
+[submodule "packages/luci-theme-argon"]
+    path = packages/luci-theme-argon
+    url = https://github.com/jerrykuku/luci-theme-argon
+
+[submodule "packages/luci-app-advanced-reboot"]
+    path = packages/luci-app-advanced-reboot
+    url = https://github.com/stangri/luci-app-advanced-reboot
