@@ -135,5 +135,5 @@ jobs:
       with:
         retain_days: 1
         keep_minimum_runs: 3
-        workflow_id: Merge-upstream
+        delete_workflow_pattern: Merge-upstream
         
