@@ -1,5 +1,5 @@
 From 1234567890abcdef1234567890abcdef12345678 Mon Sep 17 00:00:00 2001
-From: Your Name <you@example.com>
+From: Jackie264 <jackie.han@google.com>
 Date: Fri, 10 Oct 2025 18:30:00 +0800
 Subject: [PATCH] fix: use $(TOPDIR)/feeds/luci/luci.mk instead of ../../luci.mk
 
@@ -18,4 +18,4 @@ index abcdef1..1234567 100644
 -include ../../luci.mk
 +include $(TOPDIR)/feeds/luci/luci.mk
  
-# call BuildPackage - OpenWrt buildroot signature
+ # call BuildPackage - OpenWrt buildroot signature
