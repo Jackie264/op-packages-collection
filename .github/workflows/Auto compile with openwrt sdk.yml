@@ -170,11 +170,12 @@ jobs:
           echo "Patch application completed"
           #--------------------------------------end_patches--------------------------------------------
 
-      - name: Apply luci.mk include patch
+      - name: Generate luci.mk patch then apply
         run: |
           echo " "
           echo " "
-          echo "Patch luci.mk include"
+          chmod +x scripts/gen-luci-mk-patch.sh
+          scripts/gen-luci-mk-patch.sh
           git apply patches/0001-fix-luci-mk-include.patch
           echo " "
           echo " "
