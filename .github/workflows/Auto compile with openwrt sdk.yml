@@ -113,6 +113,17 @@ jobs:
           sudo -E apt-get -qq autoremove --purge
           sudo -E apt-get -qq clean
           
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+
+      - name: Ensure submodules are initialized
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive
+          
       - name: Initialization environment
         if: steps.cache-sdk.outputs.cache-hit != 'true'
         run: |
@@ -172,8 +183,8 @@ jobs:
           echo "CONFIG_LUCI_LANG_zh_Hans=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
           make defconfig
-          echo "make package/feeds/mypackage/openwrt-passwall2/luci-app-passwall2/{clean,compile} -j$(nproc)"
-          make package/feeds/mypackage/openwrt-passwall2/luci-app-passwall2/{clean,compile} -j$(nproc) V=s
+          echo "make package/luci-app-passwall2/{clean,compile} -j$(nproc)"
+          make package/luci-app-passwall2/{clean,compile} -j$(nproc) V=s
           mv bin/packages/x86_64/passwall2/ ../
           make clean
           rm .config .config.old
