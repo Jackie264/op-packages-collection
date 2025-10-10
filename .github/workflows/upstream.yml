@@ -78,7 +78,35 @@ jobs:
           git checkout $branch || true
           git pull origin $branch || true
         '
+    - name: Check .gitmodules consistency
+      run: |
+        echo "🔍 Checking .gitmodules consistency..."
+        # 确保 .gitmodules 存在
+        if [ ! -f .gitmodules ]; then
+          echo "❌ .gitmodules file is missing!"
+          exit 1
+        fi
 
+        # 检查 .gitmodules 中的路径是否都存在
+        for path in $(git config -f .gitmodules --get-regexp path | awk '{print $2}'); do
+          if [ ! -d "$path" ]; then
+            echo "❌ Submodule path '$path' declared in .gitmodules but directory missing"
+            exit 1
+          fi
+        done
+
+        # 检查实际目录是否都在 .gitmodules 中声明
+        for dir in packages/*; do
+          if [ -d "$dir" ]; then
+            if ! git config -f .gitmodules --get-regexp path | grep -q "$dir"; then
+              echo "❌ Directory '$dir' exists but not declared in .gitmodules"
+              exit 1
+            fi
+          fi
+        done
+
+        echo "✅ .gitmodules is consistent with submodule directories."
+        
     - name: Apply DIY patches
       run: |
         for pkg in $(ls -d .github/diy/packages/*); do
