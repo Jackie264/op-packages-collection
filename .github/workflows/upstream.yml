@@ -47,6 +47,12 @@ jobs:
         git config --global user.name "github-actions[bot]"
         sudo timedatectl set-timezone "Asia/Shanghai"
 
+    - name: Ensure submodules are initialized
+      run: |
+        echo "🔄 Initializing and updating all submodules..."
+        git submodule sync --recursive
+        git submodule update --init --recursive
+
     - name: Initialize missing submodules
       run: |
         declare -A repos=(
