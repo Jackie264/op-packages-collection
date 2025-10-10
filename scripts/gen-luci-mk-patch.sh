@@ -7,24 +7,34 @@ PATCH_FILE="$PATCH_DIR/0001-fix-luci-mk-include.patch"
 mkdir -p "$PATCH_DIR"
 
 echo "🔍 Scanning for '../../luci.mk' includes..."
-MODIFIED_FILES=()
+> "$PATCH_FILE"   # 清空旧补丁
 
-# 扫描并替换
+MODIFIED=0
+
+# 扫描 packages 下的 Makefile
 while IFS= read -r mk; do
   if grep -q "include ../../luci.mk" "$mk"; then
     echo "⚡ Patching $mk"
+
+    # 备份原文件
+    cp "$mk" "$mk.orig"
+
+    # 替换
     sed -i 's|include ../../luci.mk|include $(TOPDIR)/feeds/luci/luci.mk|' "$mk"
-    MODIFIED_FILES+=("$mk")
+
+    # 生成 diff 并追加到补丁文件
+    diff -u "$mk.orig" "$mk" >> "$PATCH_FILE" || true
+
+    # 恢复原文件
+    mv "$mk.orig" "$mk"
+
+    MODIFIED=1
   fi
 done < <(find packages -name Makefile -type f)
 
-# 如果有修改，生成补丁
-if [ ${#MODIFIED_FILES[@]} -gt 0 ]; then
-  echo "📦 Generating patch at $PATCH_FILE"
-  git diff -- "${MODIFIED_FILES[@]}" > "$PATCH_FILE"
-
-  # 恢复被修改的文件，避免污染源码
-  git checkout -- "${MODIFIED_FILES[@]}"
+if [ $MODIFIED -eq 1 ]; then
+  echo "📦 Patch generated at $PATCH_FILE"
 else
   echo "✅ No Makefile needed patching, skipping patch generation."
+  rm -f "$PATCH_FILE"
 fi
