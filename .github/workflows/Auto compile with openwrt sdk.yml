@@ -46,34 +46,11 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --recursive
 
-#      - name: Check version
-#        id: check_version
-#        run: |
-#          cd packages/openwrt-passwall2/luci-app-passwall2
-#          latest_version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' Makefile | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
-#          prerelease=$([ "${{ github.ref_name }}" == "main" ] && echo false || echo true)
-#          echo "latest_version=${latest_version}" >> $GITHUB_OUTPUT
-#          echo "has_update=true" >> $GITHUB_OUTPUT
-#          echo "prerelease=${prerelease}" >> $GITHUB_OUTPUT
-#          echo "latest_version: ${latest_version}"
-#          echo "has_update: true"
-#          echo "prerelease: ${prerelease}"
-#
-#      - name: Prepare release
-#        id: prepare
-#        if: steps.check_version.outputs.has_update == 'true'
-#        run: |
-#          echo "## :mega:Update content" >> release.txt
-#          echo "![](https://img.shields.io/github/downloads/${{ env.passwall2 }}/${{steps.check_version.outputs.latest_version}}/total?style=flat-square)" >> release.txt
-#          echo "### Passwall2 Info" >> release.txt
-#          echo "**:minidisc: Passwall2 Version: ${{steps.check_version.outputs.latest_version}}**" >> release.txt
-#          touch release.txt
-#          echo "status=success" >> $GITHUB_OUTPUT
-
       - name: Check versions
         id: check_versions
         run: |
           cd packages
+          prerelease=$([ "${{ github.ref_name }}" == "main" ] && echo false || echo true)
           echo "## :mega:Update content" > release.txt
           echo "### LuCI Packages Info" >> release.txt
           echo "**package name**|**version**" >> release.txt
@@ -89,7 +66,7 @@ jobs:
           done
 
           echo "has_update=true" >> $GITHUB_OUTPUT
-          echo "prerelease=$([ \"${{ github.ref_name }}\" == \"main\" ] && echo false || echo true)" >> $GITHUB_OUTPUT
+          echo "prerelease=${prerelease}" >> $GITHUB_OUTPUT
           echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Prepare release
