@@ -403,12 +403,23 @@ jobs:
         uses: mxschmitt/action-tmate@v3.22
         if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
 
+      - name: Checkout
+        uses: actions/checkout@main
+        with:
+          fetch-depth: 0
+          ref: ${{ github.ref_name }}
+          
+      - name: Ensure submodules are initialized
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive
+          
       - name: ${{ matrix.platform }} feeds configuration packages
         run: |
           cd sdk
           cat > feeds.conf.default << EOF
           src-git passwall_packages https://github.com/${{ env.packages }}.git;main
-          src-git passwall2 https://github.com/${{ env.passwall2 }}.git;main
+          src-link mypackage ${GITHUB_WORKSPACE}/packages
           src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ matrix.sdk_ver }}
           src-git packages https://github.com/openwrt/packages.git;openwrt-${{ matrix.sdk_ver }}
           src-git luci https://github.com/openwrt/luci.git;openwrt-${{ matrix.sdk_ver }}
@@ -494,7 +505,7 @@ jobs:
           make package/feeds/passwall_packages/sing-box/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/tuic-client/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/v2ray-plugin/compile -j$(nproc) V=s
-          make package/feeds/mypackage/stunman/compile -j$(nproc) V=s
+          make package/feeds/mypackage/openwrt-stunman/compile -j$(nproc) V=s
           echo "status=success" >> $GITHUB_OUTPUT
         
       - name: Organize ${{ matrix.platform }} files
