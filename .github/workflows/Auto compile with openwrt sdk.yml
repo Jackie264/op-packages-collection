@@ -54,7 +54,7 @@ jobs:
           out="${GITHUB_WORKSPACE}/release.txt"
           echo "## :mega:Update content" > "$out"
           echo "### LuCI Packages Info" >> "$out"
-          echo "**package name**|**version**" >> "$out"
+          echo "**Package name**|**Version**" >> "$out"
           echo "-|-" >> "$out"
 
           for pkg in */luci-* luci-*; do
@@ -514,7 +514,7 @@ jobs:
           out="${GITHUB_WORKSPACE}/release.txt"
 
           echo "### Packages Version" >> "$out"
-          echo "**package name**|**package version**" >> "$out"
+          echo "**Package name**|**Version**" >> "$out"
           echo "-|-" >> "$out"
 
           pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
