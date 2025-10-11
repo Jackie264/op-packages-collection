@@ -61,18 +61,12 @@ jobs:
             if [ -f "$pkg/Makefile" ]; then
               version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' "$pkg/Makefile" \
                 | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
-              # 如果没抓到，就 fallback 到 control 文件
-              if [ -z "$version" ]; then
-                echo "⚠️ $pkg 没有定义 PKG_VERSION，尝试 fallback..." >&2
-                make -C "$GITHUB_WORKSPACE/sdk" package/$(basename $pkg)/prepare QUILT=1 V=s
-                control_file=$(find "$GITHUB_WORKSPACE/sdk/build_dir" -type f -path "*/ipkg-*/control" | grep "$(basename $pkg)" | head -n1)
-                if [ -n "$control_file" ]; then
-                  version=$(grep '^Version:' "$control_file" | awk '{print $2}')
-                fi
-              fi
 
-              # 如果还是没抓到，就标记为 unknown
-              [ -z "$version" ] && version="unknown"
+              if [ -z "$version" ]; then
+                echo "⚠️ $pkg 没有定义 PKG_VERSION，标记为 unknown" >&2
+                version="unknown"
+              fi
+              
               echo "**:minidisc: $pkg**|**$version**" >> "$out"
             fi
           done
