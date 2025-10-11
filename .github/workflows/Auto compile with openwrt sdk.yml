@@ -271,13 +271,6 @@ jobs:
           tag_name: ${{needs.job_check.outputs.release_time}}
           files: ${{ env.FIRMWARE }}/mypackage/*.ipk
 
-      - name: Remove default source code archives
-        run: |
-          gh release delete-asset ${{ needs.job_check.outputs.release_time }} "Source code (zip)" -y || true
-          gh release delete-asset ${{ needs.job_check.outputs.release_time }} "Source code (tar.gz)" -y || true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
   job_auto_compile:
     if: ${{ needs.job_check.outputs.has_update == 'true' && needs.job_check.outputs.prerelease == 'false' }}
     permissions:
