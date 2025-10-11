@@ -57,11 +57,22 @@ jobs:
           echo "**package name**|**version**" >> "$out"
           echo "-|-" >> "$out"
 
-          # 遍历 packages/*/luci-* 和 packages/luci-* 两种情况
           for pkg in */luci-* luci-*; do
             if [ -f "$pkg/Makefile" ]; then
               version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' "$pkg/Makefile" \
                 | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
+              # 如果没抓到，就 fallback 到 control 文件
+              if [ -z "$version" ]; then
+                echo "⚠️ $pkg 没有定义 PKG_VERSION，尝试 fallback..." >&2
+                make -C "$GITHUB_WORKSPACE/sdk" package/feeds/mypackage/$(basename $pkg)/prepare QUILT=1 V=s
+                control_file=$(find "$GITHUB_WORKSPACE/sdk/build_dir" -type f -path "*/ipkg-*/control" | grep "$(basename $pkg)" | head -n1)
+                if [ -n "$control_file" ]; then
+                  version=$(grep '^Version:' "$control_file" | awk '{print $2}')
+                fi
+              fi
+
+              # 如果还是没抓到，就标记为 unknown
+              [ -z "$version" ] && version="unknown"
               echo "**:minidisc: $pkg**|**$version**" >> "$out"
             fi
           done
@@ -245,6 +256,8 @@ jobs:
           echo " "
           echo " "
           mv bin/packages/x86_64/mypackage/ ../
+          # 删除不需要的 natmapt 包
+          rm -f ../mypackage/natmapt_*.ipk || true
           make clean
           rm .config .config.old
           rm -rf feeds/mypackage feeds/mypackage.*
@@ -261,6 +274,12 @@ jobs:
           tag_name: ${{needs.job_check.outputs.release_time}}
           files: ${{ env.FIRMWARE }}/mypackage/*.ipk
 
+      - name: Remove default source code archives
+        run: |
+          gh release delete-asset ${{ needs.job_check.outputs.release_time }} "Source code (zip)" -y || true
+          gh release delete-asset ${{ needs.job_check.outputs.release_time }} "Source code (tar.gz)" -y || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   job_auto_compile:
     if: ${{ needs.job_check.outputs.has_update == 'true' && needs.job_check.outputs.prerelease == 'false' }}
@@ -474,8 +493,8 @@ jobs:
           make package/feeds/passwall_packages/sing-box/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/tuic-client/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/v2ray-plugin/compile -j$(nproc) V=s
-          make package/stuntman/compile -j$(nproc) V=s
-          make package/natmapt/compile -j$(nproc) V=s
+          make package/feeds/stuntman/compile -j$(nproc) V=s
+          make package/feeds/natmapt/compile -j$(nproc) V=s
           echo "status=success" >> $GITHUB_OUTPUT
         
       - name: Organize ${{ matrix.platform }} files
@@ -505,6 +524,17 @@ jobs:
           for pkg in $pkgs; do
             version=$(awk -F ':=' '/PKG_VERSION:=/{print $2}' feeds/passwall_packages/$pkg/Makefile | sed 's/\r//g')
             [ -z "${version}" ] && version=$(awk -F ':=' '/PKG_SOURCE_DATE:=/{print $2}' feeds/passwall_packages/$pkg/Makefile | sed 's/\r//g')
+            
+            if [ -z "$version" ]; then
+              echo "⚠️ $pkg 没有定义 PKG_VERSION，尝试 fallback..." >&2
+              make package/feeds/passwall_packages/$pkg/prepare QUILT=1 V=s
+              control_file=$(find build_dir -type f -path "*/ipkg-*/control" | grep "$pkg" | head -n1)
+              if [ -n "$control_file" ]; then
+                version=$(grep '^Version:' "$control_file" | awk '{print $2}')
+              fi
+            fi
+
+            [ -z "$version" ] && version="unknown"
             echo "**:ice_cube: $pkg**|**${version}**" >> "$out"
           done
           echo "**:ice_cube: v2ray-geoip**|**$(awk -F ':=' '/GEOIP_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
