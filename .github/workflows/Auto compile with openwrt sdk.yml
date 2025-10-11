@@ -63,8 +63,11 @@ jobs:
                 | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
 
               if [ -z "$version" ]; then
-                echo "⚠️ $pkg 没有定义 PKG_VERSION，标记为 unknown" >&2
-                version="unknown"
+                echo "⚠️ $pkg 没有定义 PKG_VERSION，使用日期 fallback..." >&2
+                year=$(date +%y)
+                day=$(date +%j)
+                commit=$(git -C "$pkg" rev-parse --short=7 HEAD 2>/dev/null || echo "unknown")
+                version="${year}.${day}.${commit}"
               fi
               
               echo "**:minidisc: $pkg**|**$version**" >> "$out"
