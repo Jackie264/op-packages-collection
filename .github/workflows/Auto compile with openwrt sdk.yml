@@ -46,17 +46,6 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --recursive
 
-      - name: Generate luci.mk patch then apply
-        run: |
-          echo " "
-          echo " "
-          echo "Generate luci.mk patch then apply it..."
-          chmod +x scripts/gen-luci-mk-patch.sh
-          scripts/gen-luci-mk-patch.sh
-          git apply -p0 patches/0001-fix-luci-mk-include.patch
-          echo " "
-          echo " "
-          
       - name: Check version
         id: check_version
         run: |
@@ -243,7 +232,7 @@ jobs:
           make clean
           rm .config .config.old
           rm -rf feeds/mypackage feeds/passwall2.*
-
+          cd ..
           echo "status=success" >> $GITHUB_OUTPUT
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
