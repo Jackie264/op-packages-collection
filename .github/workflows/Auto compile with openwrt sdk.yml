@@ -32,8 +32,8 @@ jobs:
       contents: write
     outputs:
       release_time: ${{ steps.build_tag.outputs.tag }}
-      has_update: ${{ steps.check_version.outputs.has_update }}
-      prerelease: ${{ steps.check_version.outputs.prerelease }}
+      has_update: ${{ steps.check_versions.outputs.has_update }}
+      prerelease: ${{ steps.check_versions.outputs.prerelease }}
     steps:
       - name: Checkout
         uses: actions/checkout@main
@@ -51,17 +51,18 @@ jobs:
         run: |
           cd packages
           prerelease=$([ "${{ github.ref_name }}" == "main" ] && echo false || echo true)
-          echo "## :mega:Update content" > release.txt
-          echo "### LuCI Packages Info" >> release.txt
-          echo "**package name**|**version**" >> release.txt
-          echo "-|-" >> release.txt
+          out="${GITHUB_WORKSPACE}/release.txt"
+          echo "## :mega:Update content" > "$out"
+          echo "### LuCI Packages Info" >> "$out"
+          echo "**package name**|**version**" >> "$out"
+          echo "-|-" >> "$out"
 
           # 遍历 packages/*/luci-* 和 packages/luci-* 两种情况
           for pkg in */luci-* luci-*; do
             if [ -f "$pkg/Makefile" ]; then
               version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' "$pkg/Makefile" \
                 | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
-              echo "**:minidisc: $pkg**|**$version**" >> release.txt
+              echo "**:minidisc: $pkg**|**$version**" >> "$out"
             fi
           done
 
@@ -91,7 +92,7 @@ jobs:
           tag_name: ${{steps.build_tag.outputs.tag}}
           target_commitish: ${{ github.ref_name }}
           name: Release (${{ steps.build_tag.outputs.tag }})
-          prerelease: ${{steps.check_version.outputs.prerelease}}
+          prerelease: ${{steps.check_versions.outputs.prerelease}}
           body_path: release.txt
 
 
@@ -502,33 +503,22 @@ jobs:
         if: steps.compile.outputs.status == 'success'
         run: |
           cd sdk
-          echo "## :mega:Update content" >> release.txt
-          echo "### LuCI Packages Info" >> release.txt
-          echo "**package name**|**version**" >> release.txt
-          echo "-|-" >> release.txt
-          # 遍历 feeds 下的 luci-* 包
-          for pkg in feeds/mypackage/luci-* feeds/passwall2/luci-*; do
-            if [ -f "$pkg/Makefile" ]; then
-              version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' "$pkg/Makefile" \
-                | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
-              echo "**:minidisc: $(basename $pkg)**|**$version**" >> release.txt
-            fi
-          done
+          out="${GITHUB_WORKSPACE}/release.txt"
 
-          echo "### Packages Version" >> release.txt
-          echo "**package name**|**package version**" >> release.txt
-          echo "-|-" >> release.txt
+          echo "### Packages Version" >> "$out"
+          echo "**package name**|**package version**" >> "$out"
+          echo "-|-" >> "$out"
 
           pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
           for pkg in $pkgs; do
             version=$(awk -F ':=' '/PKG_VERSION:=/{print $2}' feeds/passwall_packages/$pkg/Makefile | sed 's/\r//g')
             [ -z "${version}" ] && version=$(awk -F ':=' '/PKG_SOURCE_DATE:=/{print $2}' feeds/passwall_packages/$pkg/Makefile | sed 's/\r//g')
-            echo "**:ice_cube: $pkg**|**${version}**" >> release.txt
+            echo "**:ice_cube: $pkg**|**${version}**" >> "$out"
           done
-          echo "**:ice_cube: v2ray-geoip**|**$(awk -F ':=' '/GEOIP_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> release.txt
-          echo "**:ice_cube: v2ray-geosite**|**$(awk -F ':=' '/GEOSITE_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> release.txt
+          echo "**:ice_cube: v2ray-geoip**|**$(awk -F ':=' '/GEOIP_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
+          echo "**:ice_cube: v2ray-geosite**|**$(awk -F ':=' '/GEOSITE_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
 
-          touch release.txt
+          touch "$out"
           echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Upload firmware to release
@@ -538,5 +528,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{needs.job_check.outputs.release_time}}
-          body_path: ${{ env.FIRMWARE }}/release.txt
+          body_path: release.txt
           files: ${{ env.FIRMWARE }}/upload/**/*
