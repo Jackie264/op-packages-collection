@@ -64,7 +64,7 @@ jobs:
               # 如果没抓到，就 fallback 到 control 文件
               if [ -z "$version" ]; then
                 echo "⚠️ $pkg 没有定义 PKG_VERSION，尝试 fallback..." >&2
-                make -C "$GITHUB_WORKSPACE/sdk" package/feeds/mypackage/$(basename $pkg)/prepare QUILT=1 V=s
+                make -C "$GITHUB_WORKSPACE/sdk" package/$(basename $pkg)/prepare QUILT=1 V=s
                 control_file=$(find "$GITHUB_WORKSPACE/sdk/build_dir" -type f -path "*/ipkg-*/control" | grep "$(basename $pkg)" | head -n1)
                 if [ -n "$control_file" ]; then
                   version=$(grep '^Version:' "$control_file" | awk '{print $2}')
