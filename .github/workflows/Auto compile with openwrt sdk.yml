@@ -31,7 +31,7 @@ jobs:
     permissions:
       contents: write
     outputs:
-      passwall2_version: ${{ steps.check_version.outputs.latest_version }}
+#      passwall2_version: ${{ steps.check_version.outputs.latest_version }}
       has_update: ${{ steps.check_version.outputs.has_update }}
       prerelease: ${{ steps.check_version.outputs.prerelease }}
     steps:
@@ -46,30 +46,60 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --recursive
 
-      - name: Check version
-        id: check_version
+#      - name: Check version
+#        id: check_version
+#        run: |
+#          cd packages/openwrt-passwall2/luci-app-passwall2
+#          latest_version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' Makefile | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
+#          prerelease=$([ "${{ github.ref_name }}" == "main" ] && echo false || echo true)
+#          echo "latest_version=${latest_version}" >> $GITHUB_OUTPUT
+#          echo "has_update=true" >> $GITHUB_OUTPUT
+#          echo "prerelease=${prerelease}" >> $GITHUB_OUTPUT
+#          echo "latest_version: ${latest_version}"
+#          echo "has_update: true"
+#          echo "prerelease: ${prerelease}"
+#
+#      - name: Prepare release
+#        id: prepare
+#        if: steps.check_version.outputs.has_update == 'true'
+#        run: |
+#          echo "## :mega:Update content" >> release.txt
+#          echo "![](https://img.shields.io/github/downloads/${{ env.passwall2 }}/${{steps.check_version.outputs.latest_version}}/total?style=flat-square)" >> release.txt
+#          echo "### Passwall2 Info" >> release.txt
+#          echo "**:minidisc: Passwall2 Version: ${{steps.check_version.outputs.latest_version}}**" >> release.txt
+#          touch release.txt
+#          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Check versions
+        id: check_versions
         run: |
-          cd packages/openwrt-passwall2/luci-app-passwall2
-          latest_version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' Makefile | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
-          prerelease=$([ "${{ github.ref_name }}" == "main" ] && echo false || echo true)
-          echo "latest_version=${latest_version}" >> $GITHUB_OUTPUT
+          cd packages
+          echo "## :mega:Update content" > release.txt
+          echo "### LuCI Packages Info" >> release.txt
+          echo "**package name**|**version**" >> release.txt
+          echo "-|-" >> release.txt
+
+          # 遍历 packages/*/luci-* 和 packages/luci-* 两种情况
+          for pkg in */luci-* luci-*; do
+            if [ -f "$pkg/Makefile" ]; then
+              version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' "$pkg/Makefile" \
+                | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
+              echo "**:minidisc: $pkg**|**$version**" >> release.txt
+            fi
+          done
+
           echo "has_update=true" >> $GITHUB_OUTPUT
-          echo "prerelease=${prerelease}" >> $GITHUB_OUTPUT
-          echo "latest_version: ${latest_version}"
-          echo "has_update: true"
-          echo "prerelease: ${prerelease}"
+          echo "prerelease=$([ \"${{ github.ref_name }}\" == \"main\" ] && echo false || echo true)" >> $GITHUB_OUTPUT
+          echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Prepare release
         id: prepare
-        if: steps.check_version.outputs.has_update == 'true'
+        if: steps.check_versions.outputs.has_update == 'true'
         run: |
-          echo "## :mega:Update content" >> release.txt
-          echo "![](https://img.shields.io/github/downloads/${{ env.passwall2 }}/${{steps.check_version.outputs.latest_version}}/total?style=flat-square)" >> release.txt
-          echo "### Passwall2 Info" >> release.txt
-          echo "**:minidisc: Passwall2 Version: ${{steps.check_version.outputs.latest_version}}**" >> release.txt
+          # release.txt 已经生成，这里只保证存在
           touch release.txt
           echo "status=success" >> $GITHUB_OUTPUT
-
+          
       - name: Set build tag
         id: build_tag
         if: steps.prepare.outputs.status == 'success'
@@ -485,9 +515,17 @@ jobs:
         run: |
           cd sdk
           echo "## :mega:Update content" >> release.txt
-          echo "![](https://img.shields.io/github/downloads/${{ env.passwall2 }}/${{needs.job_check.outputs.passwall2_version}}/total?style=flat-square)" >> release.txt
-          echo "### Passwall2 Info" >> release.txt
-          echo "**:minidisc: Passwall2 Version: ${{needs.job_check.outputs.passwall2_version}}**" >> release.txt
+          echo "### LuCI Packages Info" >> release.txt
+          echo "**package name**|**version**" >> release.txt
+          echo "-|-" >> release.txt
+          # 遍历 feeds 下的 luci-* 包
+          for pkg in feeds/mypackage/luci-* feeds/passwall2/luci-*; do
+            if [ -f "$pkg/Makefile" ]; then
+              version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' "$pkg/Makefile" \
+                | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
+              echo "**:minidisc: $(basename $pkg)**|**$version**" >> release.txt
+            fi
+          done
 
           echo "### Packages Version" >> release.txt
           echo "**package name**|**package version**" >> release.txt
