@@ -60,6 +60,7 @@ jobs:
           echo "prerelease: ${prerelease}"
 
       - name: Prepare release
+        id: prepare
         if: steps.check_version.outputs.has_update == 'true'
         run: |
           echo "## :mega:Update content" >> release.txt
@@ -67,17 +68,24 @@ jobs:
           echo "### Passwall2 Info" >> release.txt
           echo "**:minidisc: Passwall2 Version: ${{steps.check_version.outputs.latest_version}}**" >> release.txt
           touch release.txt
+          echo "status=success" >> $GITHUB_OUTPUT
 
-#      - name: Generate new tag & release
-#        if: steps.check_version.outputs.has_update == 'true'
-#        uses: softprops/action-gh-release@v2
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          tag_name: ${{steps.check_version.outputs.latest_version}}
-#          target_commitish: ${{ github.ref_name }}
-#          prerelease: ${{steps.check_version.outputs.prerelease}}
-#          body_path: release.txt
+      - name: Set build tag
+        id: build_tag
+        if: steps.prepare.outputs.status == 'success'
+        run: echo "tag=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+        
+      - name: Generate new tag & release
+        if: steps.prepare.outputs.status == 'success'
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{steps.build_tag.outputs.tag}}
+          target_commitish: ${{ github.ref_name }}
+          name: Release (${{ steps.build_tag.outputs.tag }})
+          prerelease: ${{steps.check_version.outputs.prerelease}}
+          body_path: release.txt
 
 
   job_build_passwall2:
@@ -235,11 +243,6 @@ jobs:
           cd ..
           echo "status=success" >> $GITHUB_OUTPUT
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-
-      - name: Set build tag
-        id: build_tag
-        if: steps.compile.outputs.status == 'success'
-        run: echo "tag=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
         
       - name: Upload mypackage ipks to release
         uses: softprops/action-gh-release@v2
@@ -248,7 +251,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{steps.build_tag.outputs.tag}}
-          name: Release ${{ steps.build_tag.outputs.tag }}
           files: ${{ env.FIRMWARE }}/mypackage/*.ipk
 
 
@@ -462,12 +464,8 @@ jobs:
           make package/feeds/passwall_packages/sing-box/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/tuic-client/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/v2ray-plugin/compile -j$(nproc) V=s
-          echo "status=success" >> $GITHUB_OUTPUT          
-
-      - name: Set build tag
-        id: build_tag
-        if: steps.compile.outputs.status == 'success'
-        run: echo "tag=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+          make package/feeds/mypackage/stunman/compile -j$(nproc) V=s
+          echo "status=success" >> $GITHUB_OUTPUT
         
       - name: Organize ${{ matrix.platform }} files
         id: organize
@@ -506,7 +504,7 @@ jobs:
 
           touch release.txt
           echo "status=success" >> $GITHUB_OUTPUT
-        
+
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2
         if: steps.info.outputs.status == 'success'
@@ -514,6 +512,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{steps.build_tag.outputs.tag}}
-          name: Release (${{ steps.build_tag.outputs.tag }})
           body_path: ${{ env.FIRMWARE }}/release.txt
           files: ${{ env.FIRMWARE }}/upload/**/*
