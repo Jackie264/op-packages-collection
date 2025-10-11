@@ -231,7 +231,7 @@ jobs:
           mv bin/packages/x86_64/mypackage/ ../
           make clean
           rm .config .config.old
-          rm -rf feeds/mypackage feeds/passwall2.*
+          rm -rf feeds/mypackage feeds/mypackage.*
           cd ..
           echo "status=success" >> $GITHUB_OUTPUT
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
