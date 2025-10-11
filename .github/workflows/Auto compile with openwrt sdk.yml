@@ -483,8 +483,8 @@ jobs:
           make package/feeds/passwall_packages/sing-box/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/tuic-client/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/v2ray-plugin/compile -j$(nproc) V=s
-          make package/feeds/stuntman/compile -j$(nproc) V=s
-          make package/feeds/natmapt/compile -j$(nproc) V=s
+          make package/feeds/openwrt-stuntman/compile -j$(nproc) V=s
+          make package/feeds/openwrt-natmapt/compile -j$(nproc) V=s
           echo "status=success" >> $GITHUB_OUTPUT
         
       - name: Organize ${{ matrix.platform }} files
