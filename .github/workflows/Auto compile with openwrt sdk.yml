@@ -31,7 +31,7 @@ jobs:
     permissions:
       contents: write
     outputs:
-#      passwall2_version: ${{ steps.check_version.outputs.latest_version }}
+      release_time: ${{ steps.build_tag.outputs.tag }}
       has_update: ${{ steps.check_version.outputs.has_update }}
       prerelease: ${{ steps.check_version.outputs.prerelease }}
     steps:
@@ -280,7 +280,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{steps.build_tag.outputs.tag}}
+          tag_name: ${{needs.job_check.outputs.release_time}}
           files: ${{ env.FIRMWARE }}/mypackage/*.ipk
 
 
@@ -549,6 +549,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{steps.build_tag.outputs.tag}}
+          tag_name: ${{needs.job_check.outputs.release_time}}
           body_path: ${{ env.FIRMWARE }}/release.txt
           files: ${{ env.FIRMWARE }}/upload/**/*
