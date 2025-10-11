@@ -474,17 +474,9 @@ jobs:
         if: steps.compile.outputs.status == 'success'
         run: |
           cd sdk
-          mkdir -p upload/${{ matrix.platform }}/luci
           mkdir -p upload/${{ matrix.platform }}/packages
-
-          find bin/packages -type f -name "*.ipk" | while read f; do
-            filename=$(basename "$f")
-            if [[ "$filename" == luci-* ]]; then
-              cp "$f" upload/${{ matrix.platform }}/luci/
-            else
-              cp "$f" upload/${{ matrix.platform }}/packages/
-            fi
-          done
+          cp bin/packages/*/passwall_packages/*.ipk upload/${{ matrix.platform }}/packages/ || true
+          cp bin/packages/*/stunman/*.ipk upload/${{ matrix.platform }}/packages/ || true
 
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
           echo "status=success" >> $GITHUB_OUTPUT
