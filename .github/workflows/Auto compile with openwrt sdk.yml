@@ -380,17 +380,6 @@ jobs:
       - name: SSH connection to Actions
         uses: mxschmitt/action-tmate@v3.22
         if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
-
-      - name: Checkout
-        uses: actions/checkout@main
-        with:
-          fetch-depth: 0
-          ref: ${{ github.ref_name }}
-          
-      - name: Ensure submodules are initialized
-        run: |
-          git submodule sync --recursive
-          git submodule update --init --recursive
           
       - name: ${{ matrix.platform }} feeds configuration packages
         run: |
