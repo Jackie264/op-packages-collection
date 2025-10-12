@@ -545,11 +545,12 @@ jobs:
           echo "-|-" >> "$out"
 
           pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
+
           # stuntman feed 包
-          pkgs_stuntman=$(ls package/stuntman)
+          pkgs_stuntman=$(find package/stuntman -mindepth 1 -maxdepth 1 -type d -exec test -f "{}/Makefile" \; -print | xargs -n1 basename)
 
           # natmapt feed 包
-          pkgs_natmapt=$(ls package/natmapt)
+          pkgs_natmapt=$(find package/natmapt -mindepth 1 -maxdepth 1 -type d -exec test -f "{}/Makefile" \; -print | xargs -n1 basename)
           
           for pkg in $pkgs $pkgs_stuntman $pkgs_natmapt; do
             mf=""
@@ -557,12 +558,12 @@ jobs:
               [ -f "$base/$pkg/Makefile" ] && mf="$base/$pkg/Makefile"
             done
             
+            [ -z "$mf" ] && continue
+            
             version=""
-            if [ -n "$mf" ]; then
-              version=$(awk -F ':=' '/PKG_VERSION:=/{print $2}' "$mf" | sed 's/\r//g')
-              [ -z "$version" ] && version=$(awk -F ':=' '/PKG_SOURCE_DATE:=/{print $2}' "$mf" | sed 's/\r//g')
-            fi
-
+            version=$(awk -F ':=' '/PKG_VERSION:=/{print $2}' "$mf" | sed 's/\r//g')
+            [ -z "$version" ] && version=$(awk -F ':=' '/PKG_SOURCE_DATE:=/{print $2}' "$mf" | sed 's/\r//g')
+            
             if [ -z "$version" ]; then
               echo "⚠️ $pkg 没有定义 PKG_VERSION，尝试 fallback..." >&2
               if [ -d "package/feeds/passwall_packages/$pkg" ]; then
@@ -575,10 +576,11 @@ jobs:
               control_file=$(find build_dir -type f -path "*/ipkg-*/control" | grep "$pkg" | head -n1)
               [ -n "$control_file" ] && version=$(grep '^Version:' "$control_file" | awk '{print $2}')
             fi
-
+            
             [ -z "$version" ] && version="unknown"
             echo "**:ice_cube: $pkg**|**${version}**" >> "$out"
           done
+          
           echo "**:ice_cube: v2ray-geoip**|**$(awk -F ':=' '/GEOIP_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
           echo "**:ice_cube: v2ray-geosite**|**$(awk -F ':=' '/GEOSITE_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
 
