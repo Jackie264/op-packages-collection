@@ -64,14 +64,11 @@ jobs:
                 | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
 
               if [ -z "$version" ]; then
-                echo "⚠️ $pkg 没有定义 PKG_VERSION，使用日期 fallback..." >&2
-                year=$(date +%y)
-                day=$(date +%j)
-                commit=$(git -C "$pkg" rev-parse --short=7 HEAD 2>/dev/null || echo "unknown")
-                version="${year}.${day}.${commit}"
+                echo "⚠️ $pkg 没有定义 PKG_VERSION，使用unknown..." >&2
+                version="unknown"
               fi
               
-              echo "**:minidisc: $pkg**|**$version**" >> "$out"
+              echo "**:minidisc: $pkgname**|**$version**" >> "$out"
             fi
           done
 
@@ -262,7 +259,23 @@ jobs:
           cd ..
           echo "status=success" >> $GITHUB_OUTPUT
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-        
+
+      - name: Fix missing versions from built ipks
+        run: |
+          out="${GITHUB_WORKSPACE}/release.txt"
+
+          # 注意这里改成扫描工作区根目录下的 mypackage/
+          for ipk in $(find "${GITHUB_WORKSPACE}/mypackage" -type f -name "luci-*.ipk"); do
+            fname=$(basename "$ipk")
+            pkg=$(echo "$fname" | cut -d_ -f1)
+            ver=$(echo "$fname" | cut -d_ -f2)
+
+            if grep -q "**:minidisc: $pkg**|**unknown**" "$out"; then
+              sed -i "s|**unknown**|**$ver**|g" "$out"
+              echo "✔️ 修正 $pkg 版本号为 $ver"
+            fi
+          done
+
       - name: Upload mypackage ipks to release
         uses: softprops/action-gh-release@v2
         if: steps.compile.outputs.status == 'success'
