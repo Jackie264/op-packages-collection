@@ -394,8 +394,6 @@ jobs:
         run: |
           cd sdk
           cat > feeds.conf.default << EOF
-          src-git stuntman https://github.com/muink/openwrt-stuntman.git;master
-          src-git natmapt https://github.com/muink/openwrt-natmapt.git;master
           src-git passwall_packages https://github.com/${{ env.packages }}.git;main
           src-git passwall2 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ env.passwall2 }}.git;${{ github.ref_name }}
           src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ matrix.sdk_ver }}
@@ -408,6 +406,8 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+          git clone --depth 1 https://github.com/muink/openwrt-stuntman.git package/stuntman
+          git clone --depth 1 https://github.com/muink/openwrt-natmapt.git package/natmapt
 
           #--------------------------------------begin_patches------------------------------------------
           echo "Start applying the patch"
@@ -483,8 +483,8 @@ jobs:
           make package/feeds/passwall_packages/sing-box/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/tuic-client/compile -j$(nproc) V=s
           make package/feeds/passwall_packages/v2ray-plugin/compile -j$(nproc) V=s
-          make package/feeds/stuntman/compile -j$(nproc) V=s
-          make package/feeds/natmapt/compile -j$(nproc) V=s
+          make package/stuntman/compile -j$(nproc) V=s
+          make package/natmapt/compile -j$(nproc) V=s
           echo "status=success" >> $GITHUB_OUTPUT
         
       - name: Organize ${{ matrix.platform }} files
@@ -494,7 +494,8 @@ jobs:
           cd sdk
           mkdir -p upload/${{ matrix.platform }}/packages
           cp bin/packages/*/passwall_packages/*.ipk upload/${{ matrix.platform }}/packages/ || true
-          cp bin/packages/*/stunman/*.ipk upload/${{ matrix.platform }}/packages/ || true
+          cp bin/packages/*/stuntman/*.ipk upload/${{ matrix.platform }}/packages/ || true
+          cp bin/packages/*/natmapt/*.ipk upload/${{ matrix.platform }}/packages/ || true
 
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
           echo "status=success" >> $GITHUB_OUTPUT
