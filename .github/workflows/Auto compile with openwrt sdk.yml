@@ -255,7 +255,13 @@ jobs:
           make package/luci-theme-argon/{clean,compile} -j$(nproc) V=s
           echo " "
           echo " "
-          mv bin/packages/x86_64/mypackage/ ${GITHUB_WORKSPACE}/mypackage/
+          mv bin/packages/x86_64/mypackage/* ${GITHUB_WORKSPACE}/mypackage/
+          echo "📂 已移动产物到: ${GITHUB_WORKSPACE}/mypackage"
+          realpath "${GITHUB_WORKSPACE}/mypackage"
+          ls -lh "${GITHUB_WORKSPACE}/mypackage"
+
+          echo "---- 递归列出所有 ipk ----"
+          find "${GITHUB_WORKSPACE}/mypackage" -type f -name "*.ipk" -printf "%p\n"
           # 删除不需要的 natmapt 包
           rm -f ../mypackage/natmapt_*.ipk || true
           make clean
