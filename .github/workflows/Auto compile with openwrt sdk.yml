@@ -255,6 +255,8 @@ jobs:
           make package/luci-theme-argon/{clean,compile} -j$(nproc) V=s
           echo " "
           echo " "
+
+          makedir -p ${GITHUB_WORKSPACE}/mypackage
           mv bin/packages/x86_64/mypackage/* ${GITHUB_WORKSPACE}/mypackage/
           echo "📂 已移动产物到: ${GITHUB_WORKSPACE}/mypackage"
           realpath "${GITHUB_WORKSPACE}/mypackage"
