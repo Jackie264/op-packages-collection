@@ -255,7 +255,7 @@ jobs:
           make package/luci-theme-argon/{clean,compile} -j$(nproc) V=s
           echo " "
           echo " "
-          mv bin/packages/x86_64/mypackage/ ../
+          mv bin/packages/x86_64/mypackage/ ${GITHUB_WORKSPACE}/mypackage/
           # 删除不需要的 natmapt 包
           rm -f ../mypackage/natmapt_*.ipk || true
           make clean
