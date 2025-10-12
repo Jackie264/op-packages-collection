@@ -527,14 +527,14 @@ jobs:
 
           pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
           # stuntman feed 包
-          pkgs_stuntman=$(ls feeds/stuntman)
+          pkgs_stuntman=$(ls package/stuntman)
 
           # natmapt feed 包
-          pkgs_natmapt=$(ls feeds/natmapt)
+          pkgs_natmapt=$(ls package/natmapt)
           
           for pkg in $pkgs $pkgs_stuntman $pkgs_natmapt; do
             mf=""
-            for base in feeds/passwall_packages feeds/stuntman feeds/natmapt; do
+            for base in feeds/passwall_packages package/stuntman package/natmapt; do
               [ -f "$base/$pkg/Makefile" ] && mf="$base/$pkg/Makefile"
             done
             
@@ -548,10 +548,10 @@ jobs:
               echo "⚠️ $pkg 没有定义 PKG_VERSION，尝试 fallback..." >&2
               if [ -d "package/feeds/passwall_packages/$pkg" ]; then
                 make package/feeds/passwall_packages/$pkg/prepare QUILT=1 V=s || true
-              elif [ -d "package/feeds/stuntman/$pkg" ]; then
-                make package/feeds/stuntman/$pkg/prepare QUILT=1 V=s || true
-              elif [ -d "package/feeds/natmapt/$pkg" ]; then
-                make package/feeds/natmapt/$pkg/prepare QUILT=1 V=s || true
+              elif [ -d "package/stuntman/$pkg" ]; then
+                make package/stuntman/$pkg/prepare QUILT=1 V=s || true
+              elif [ -d "package/natmapt/$pkg" ]; then
+                make package/natmapt/$pkg/prepare QUILT=1 V=s || true
               fi
               control_file=$(find build_dir -type f -path "*/ipkg-*/control" | grep "$pkg" | head -n1)
               [ -n "$control_file" ] && version=$(grep '^Version:' "$control_file" | awk '{print $2}')
