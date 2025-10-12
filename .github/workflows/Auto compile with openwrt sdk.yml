@@ -101,6 +101,11 @@ jobs:
           prerelease: ${{steps.check_versions.outputs.prerelease}}
           body_path: release.txt
 
+      - name: Upload release.txt
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-info
+          path: release.txt
 
   job_build_luci_pack:
     name: Build luci packages [${{ matrix.luci_ver }}]
@@ -260,22 +265,31 @@ jobs:
           echo "status=success" >> $GITHUB_OUTPUT
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
+      - name: Download release.txt
+        uses: actions/download-artifact@v4
+        with:
+          name: release-info
+          path: ${{ github.workspace }}
+
       - name: Fix missing versions from built ipks
         run: |
           out="${GITHUB_WORKSPACE}/release.txt"
-
-          # 注意这里改成扫描工作区根目录下的 mypackage/
           for ipk in $(find "${GITHUB_WORKSPACE}/mypackage" -type f -name "luci-*.ipk"); do
             fname=$(basename "$ipk")
             pkg=$(echo "$fname" | cut -d_ -f1)
             ver=$(echo "$fname" | cut -d_ -f2)
-
             if grep -q "**:minidisc: $pkg**|**unknown**" "$out"; then
               sed -i "s|**unknown**|**$ver**|g" "$out"
               echo "✔️ 修正 $pkg 版本号为 $ver"
             fi
           done
 
+      - name: Upload fixed release.txt
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-info-fixed
+          path: release.txt
+    
       - name: Upload mypackage ipks to release
         uses: softprops/action-gh-release@v2
         if: steps.compile.outputs.status == 'success'
@@ -514,13 +528,18 @@ jobs:
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
           echo "status=success" >> $GITHUB_OUTPUT
 
+      - name: Download fixed release.txt
+        uses: actions/download-artifact@v4
+        with:
+          name: release-info-fixed
+          path: ${{ github.workspace }}
+    
       - name: Generate release info
         id: info
         if: steps.compile.outputs.status == 'success'
         run: |
           cd sdk
           out="${GITHUB_WORKSPACE}/release.txt"
-
           echo "### Packages Version" >> "$out"
           echo "**Package name**|**Version**" >> "$out"
           echo "-|-" >> "$out"
