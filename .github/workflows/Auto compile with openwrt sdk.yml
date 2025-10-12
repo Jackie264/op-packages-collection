@@ -102,7 +102,7 @@ jobs:
           body_path: release.txt
 
 
-  job_build_passwall2:
+  job_build_luci_pack:
     name: Build luci packages [${{ matrix.luci_ver }}]
     permissions:
       contents: write
