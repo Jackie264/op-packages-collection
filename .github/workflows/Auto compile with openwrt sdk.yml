@@ -554,12 +554,9 @@ jobs:
 
           pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
 
-          # stuntman feed 包
-          pkgs_stuntman=$(find package/stuntman -mindepth 1 -maxdepth 1 -type d -exec test -f "{}/Makefile" \; -print | xargs -n1 basename)
+          pkgs_stuntman=$(find package/stuntman -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
+          pkgs_natmapt=$(find package/natmapt -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
 
-          # natmapt feed 包
-          pkgs_natmapt=$(find package/natmapt -mindepth 1 -maxdepth 1 -type d -exec test -f "{}/Makefile" \; -print | xargs -n1 basename)
-          
           for pkg in $pkgs $pkgs_stuntman $pkgs_natmapt; do
             mf=""
             for base in feeds/passwall_packages package/stuntman package/natmapt; do
