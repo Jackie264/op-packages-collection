@@ -59,6 +59,7 @@ jobs:
 
           for pkg in */luci-* luci-*; do
             if [ -f "$pkg/Makefile" ]; then
+              pkgname=$(basename "$pkg")
               version=$(awk -F ':=' '/PKG_VERSION|PKG_RELEASE/ {print $2}' "$pkg/Makefile" \
                 | sed ':a;N;s/\$(PKG_VERSION)-//;s/\n$//;s/\n/-/;ba')
 
