@@ -286,7 +286,7 @@ jobs:
             fname=$(basename "$ipk")
             pkg=$(echo "$fname" | cut -d_ -f1)
             ver=$(echo "$fname" | cut -d_ -f2)
-            if grep -q "**:minidisc: $pkg**|**unknown**" "$out"; then
+            if grep -Fq "**:minidisc: $pkg**|**unknown**" "$out"; then
               sed -i "s|**unknown**|**$ver**|g" "$out"
               echo "✔️ 修正 $pkg 版本号为 $ver"
             fi
