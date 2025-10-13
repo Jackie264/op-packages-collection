@@ -532,8 +532,8 @@ jobs:
           cd sdk
           mkdir -p upload/${{ matrix.platform }}/packages
           cp bin/packages/*/passwall_packages/*.ipk upload/${{ matrix.platform }}/packages/ || true
-          cp bin/packages/*/stuntman/*.ipk upload/${{ matrix.platform }}/packages/ || true
-          cp bin/packages/*/natmapt/*.ipk upload/${{ matrix.platform }}/packages/ || true
+          cp bin/packages/*/base/stuntman-client*.ipk upload/${{ matrix.platform }}/packages/ || true
+          cp bin/packages/*/base/natmapt*.ipk upload/${{ matrix.platform }}/packages/ || true
 
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
           echo "status=success" >> $GITHUB_OUTPUT
