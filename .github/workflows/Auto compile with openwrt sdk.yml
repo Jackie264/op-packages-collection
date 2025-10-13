@@ -603,3 +603,36 @@ jobs:
           tag_name: ${{needs.job_check.outputs.release_time}}
           body_path: release.txt
           files: ${{ env.FIRMWARE }}/upload/**/*
+
+      - name: Delete old releases and tags, keep latest 3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          # 获取所有 release 的 tag_name，按创建时间排序
+          releases=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/releases?per_page=100" \
+            | jq -r 'sort_by(.created_at) | reverse | .[].tag_name')
+
+          echo "All releases:"
+          echo "$releases"
+
+          # 跳过前 3 个，删除其余
+          echo "$releases" | tail -n +4 | while read tag; do
+            echo "Deleting release and tag: $tag"
+
+            # 获取 release id
+            release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$REPO/releases/tags/$tag" \
+              | jq -r '.id')
+
+            # 删除 release
+            if [ "$release_id" != "null" ]; then
+              curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+                "https://api.github.com/repos/$REPO/releases/$release_id"
+            fi
+
+            # 删除 tag
+            curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/$REPO/git/refs/tags/$tag"
+          done
