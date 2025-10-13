@@ -554,37 +554,76 @@ jobs:
           echo "**Package name**|**Version**" >> "$out"
           echo "-|-" >> "$out"
 
+          # 通用版本提取函数
+          extract_version() {
+            local mf="$1"
+            local version=""
+            local release=""
+
+            # 提取 PKG_RELEASE
+            release=$(awk -F ':=' '/^PKG_RELEASE:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
+            [ -z "$release" ] && release="1"
+
+            # 1. 直接定义 PKG_VERSION
+            version=$(awk -F ':=' '/^PKG_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
+            if [ -n "$version" ]; then
+              case "$version" in
+                *'$('* ) version="" ;; # 如果里面还有 $(...)，说明是组合式，继续处理
+                * ) echo "${version}-r${release}"; return 0 ;;
+              esac
+            fi
+
+            # 2. UPSTREAM_VERSION + GITHASH
+            local up=$(awk -F ':=' '/^PKG_UPSTREAM_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
+            local gh=$(awk -F ':=' '/^PKG_UPSTREAM_GITHASH:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
+            if [ -n "$up" ]; then
+              if [ -n "$gh" ]; then
+                echo "${up}~${gh:0:7}-r${release}"
+              else
+                echo "${up}-r${release}"
+              fi
+              return 0
+            fi
+
+            # 3. SOURCE_DATE + SOURCE_VERSION
+            local date=$(awk -F ':=' '/^PKG_SOURCE_DATE:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
+            local srcver=$(awk -F ':=' '/^PKG_SOURCE_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
+            if [ -n "$date" ] && [ -n "$srcver" ]; then
+              echo "${date}~${srcver}-r${release}"
+              return 0
+            fi
+
+            # 4. fallback: control 文件
+            local control_file=$(find build_dir -type f -path "*/ipkg-*/control" | grep "$(basename "$(dirname "$mf")")" | head -n1)
+            if [ -n "$control_file" ]; then
+              version=$(grep '^Version:' "$control_file" | awk '{print $2}')
+              [ -n "$version" ] && echo "$version" && return 0
+            fi
+
+            echo "unknown"
+          }
+          
           pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
 
           pkgs_stuntman=$(find package/stuntman -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
           pkgs_natmapt=$(find package/natmapt -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
 
+          # 需要处理的包
+          pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
+
+          pkgs_stuntman=$(find package/stuntman -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
+          pkgs_natmapt=$(find package/natmapt -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
+
+          # 遍历所有包并提取版本
           for pkg in $pkgs $pkgs_stuntman $pkgs_natmapt; do
             mf=""
             for base in feeds/passwall_packages package/stuntman package/natmapt; do
               [ -f "$base/$pkg/Makefile" ] && mf="$base/$pkg/Makefile"
             done
-            
+
             [ -z "$mf" ] && continue
-            
-            version=""
-            version=$(awk -F ':=' '/PKG_VERSION:=/{print $2}' "$mf" | sed 's/\r//g')
-            [ -z "$version" ] && version=$(awk -F ':=' '/PKG_SOURCE_DATE:=/{print $2}' "$mf" | sed 's/\r//g')
-            
-            if [ -z "$version" ]; then
-              echo "⚠️ $pkg 没有定义 PKG_VERSION，尝试 fallback..." >&2
-              if [ -d "package/feeds/passwall_packages/$pkg" ]; then
-                make package/feeds/passwall_packages/$pkg/prepare QUILT=1 V=s || true
-              elif [ -d "package/stuntman/$pkg" ]; then
-                make package/stuntman/$pkg/prepare QUILT=1 V=s || true
-              elif [ -d "package/natmapt/$pkg" ]; then
-                make package/natmapt/$pkg/prepare QUILT=1 V=s || true
-              fi
-              control_file=$(find build_dir -type f -path "*/ipkg-*/control" | grep "$pkg" | head -n1)
-              [ -n "$control_file" ] && version=$(grep '^Version:' "$control_file" | awk '{print $2}')
-            fi
-            
-            [ -z "$version" ] && version="unknown"
+
+            version=$(extract_version "$mf")
             echo "**:ice_cube: $pkg**|**${version}**" >> "$out"
           done
           
