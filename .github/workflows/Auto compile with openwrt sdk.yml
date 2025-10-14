@@ -637,7 +637,7 @@ jobs:
           # passwall_packages 中的包
           pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
 
-          # 从 natmapt/stuntman 的 Makefile 自动解析子包名
+          # 从 natmapt 子包（直接写全称）
           subpkgs_natmapt=$(awk '/^define Package\//{print $2}' package/natmapt/Makefile | cut -d/ -f2)
           # subpkgs_stuntman=$(awk '/^define Package\//{print $2}' package/stuntman/Makefile | cut -d/ -f2)
           # 提取 stuntman 的 PKG_NAME
@@ -651,12 +651,18 @@ jobs:
           echo "[DEBUG] pkgs=$pkgs" >&2
           echo "[DEBUG] subpkgs_natmapt=$subpkgs_natmapt" >&2
           echo "[DEBUG] subpkgs_stuntman=$subpkgs_stuntman" >&2
-          
-          # 遍历所有包并提取版本（仅输出 .config 里启用的）
+
+          declare -A seen_pkgs
+          # 遍历所有包并提取版本（仅输出 .config 里启用的，且去重）
           for pkg in $pkgs $subpkgs_natmapt $subpkgs_stuntman; do
             if ! grep -q "CONFIG_PACKAGE_${pkg}=m" .config && \
                ! grep -q "CONFIG_PACKAGE_${pkg}=y" .config; then
               echo "[DEBUG] $pkg not enabled in .config, skip" >&2
+              continue
+            fi
+
+            # 去重
+            if [[ -n "${seen_pkgs[$pkg]}" ]]; then
               continue
             fi
             
@@ -685,6 +691,8 @@ jobs:
             version=$(extract_version "$mf" "$pkg")
             echo "[DEBUG] Final version for $pkg=$version" >&2
             echo "**:ice_cube: $pkg**|**${version}**" >> "$out"
+
+            seen_pkgs[$pkg]=1
           done
           
           # 特殊处理 v2ray-geodata
