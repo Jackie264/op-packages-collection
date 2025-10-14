@@ -477,6 +477,7 @@ jobs:
           echo "CONFIG_AUTOREMOVE=n" >> .config
           echo "CONFIG_SIGNED_PACKAGES=n" >> .config
           echo "CONFIG_PACKAGE_stuntman=m" >> .config
+          echo "CONFIG_PACKAGE_stuntman-client=m" >> .config
           echo "CONFIG_PACKAGE_natmapt=m" >> .config
           # 启用 natmapt 的所有子包
           for sub in \
