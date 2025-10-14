@@ -226,34 +226,26 @@ jobs:
           echo "CONFIG_PACKAGE_luci-theme-argon=m" >> .config
           make defconfig
           echo " "
-          echo " "
           echo "make package/luci-app-passwall2/{clean,compile} -j$(nproc)"
           make package/luci-app-passwall2/{clean,compile} -j$(nproc) V=s
-          echo " "
           echo " "
           echo "make package/luci-app-advanced-reboot/{clean,compile} -j$(nproc)"
           make package/luci-app-advanced-reboot/{clean,compile} -j$(nproc) V=s
           echo " "
-          echo " "
           echo "make package/luci-app-cpu-status/{clean,compile} -j$(nproc)"
           make package/luci-app-cpu-status/{clean,compile} -j$(nproc) V=s
-          echo " "
           echo " "
           echo "make package/luci-app-log/{clean,compile} -j$(nproc)"
           make package/luci-app-log/{clean,compile} -j$(nproc) V=s
           echo " "
-          echo " "
           echo "make package/luci-app-natmapt/{clean,compile} -j$(nproc)"
           make package/luci-app-natmapt/{clean,compile} -j$(nproc) V=s
-          echo " "
           echo " "
           echo "make package/luci-app-temp-status/{clean,compile} -j$(nproc)"
           make package/luci-app-temp-status/{clean,compile} -j$(nproc) V=s
           echo " "
-          echo " "
           echo "make package/luci-theme-argon/{clean,compile} -j$(nproc)"
           make package/luci-theme-argon/{clean,compile} -j$(nproc) V=s
-          echo " "
           echo " "
 
           mkdir -p ${GITHUB_WORKSPACE}/mypackage
@@ -262,9 +254,7 @@ jobs:
           realpath "${GITHUB_WORKSPACE}/mypackage"
           ls -lh "${GITHUB_WORKSPACE}/mypackage"
 
-          echo "---- 递归列出所有 ipk ----"
           find "${GITHUB_WORKSPACE}/mypackage" -type f -name "*.ipk" -printf "%p\n"
-          # 删除不需要的 natmapt 包
           rm -f ../mypackage/natmapt_*.ipk || true
           make clean
           rm .config .config.old
@@ -479,7 +469,6 @@ jobs:
           echo "CONFIG_PACKAGE_stuntman=m" >> .config
           echo "CONFIG_PACKAGE_stuntman-client=m" >> .config
           echo "CONFIG_PACKAGE_natmapt=m" >> .config
-          # 启用 natmapt 的所有子包
           for sub in \
             natmapt-client-script-transmission \
             natmapt-client-script-deluge \
@@ -490,7 +479,6 @@ jobs:
           done
           
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
-          # 启用所有需要的功能模块
           for opt in \
             Iptables_Transparent_Proxy \
             Nftables_Transparent_Proxy \
@@ -569,14 +557,12 @@ jobs:
           echo "**Package name**|**Version**" >> "$out"
           echo "-|-" >> "$out"
 
-          # 通用版本提取函数
           extract_version() {
             local mf="$1"
             local version=""
             local release=""
             echo "[DEBUG] Extracting version for $pkg from $mf" >&2
 
-            # 特殊处理 natmapt 子包：优先使用 SCRIPTS_VERSION
             if [[ "$pkg" == natmapt-client-* || "$pkg" == natmapt-notify-* ]]; then
               version=$(awk -F ':=' '/^SCRIPTS_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
               if [ -n "$version" ]; then
@@ -586,12 +572,10 @@ jobs:
               fi
             fi
 
-            # 提取 PKG_RELEASE
             release=$(awk -F ':=' '/^PKG_RELEASE:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             [ -z "$release" ] && release="1"
             echo "[DEBUG] PKG_RELEASE=$release" >&2
 
-            # 1. 直接定义 PKG_VERSION
             version=$(awk -F ':=' '/^PKG_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             if [ -n "$version" ]; then
               echo "[DEBUG] Found PKG_VERSION raw=$version" >&2
@@ -601,7 +585,6 @@ jobs:
               esac
             fi
 
-            # 2. UPSTREAM_VERSION + GITHASH
             local up=$(awk -F ':=' '/^PKG_UPSTREAM_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             local gh=$(awk -F ':=' '/^PKG_UPSTREAM_GITHASH:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             echo "[DEBUG] PKG_UPSTREAM_VERSION=$up PKG_UPSTREAM_GITHASH=$gh" >&2
@@ -614,7 +597,6 @@ jobs:
               return 0
             fi
 
-            # 3. SOURCE_DATE + SOURCE_VERSION
             local date=$(awk -F ':=' '/^PKG_SOURCE_DATE:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             local srcver=$(awk -F ':=' '/^PKG_SOURCE_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             echo "[DEBUG] PKG_SOURCE_DATE=$date PKG_SOURCE_VERSION=$srcver" >&2
@@ -623,7 +605,6 @@ jobs:
               return 0
             fi
 
-            # 4. fallback: control 文件
             local control_file=$(find build_dir -type f -path "*/ipkg-*/control" | grep "$(basename "$(dirname "$mf")")" | head -n1)
             echo "[DEBUG] control_file=$control_file" >&2
             if [ -n "$control_file" ]; then
@@ -635,16 +616,11 @@ jobs:
             echo "unknown"
           }
           
-          # passwall_packages 中的包
           pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
 
-          # 从 natmapt 子包（直接写全称）
           subpkgs_natmapt=$(awk '/^define Package\//{print $2}' package/natmapt/Makefile | cut -d/ -f2)
-          # subpkgs_stuntman=$(awk '/^define Package\//{print $2}' package/stuntman/Makefile | cut -d/ -f2)
-          # 提取 stuntman 的 PKG_NAME
           pkgname_stuntman=$(awk -F ':=' '/^PKG_NAME:=/{print $2}' package/stuntman/Makefile | sed 's/[[:space:]]//g')
 
-          # 提取子包名，并替换 $(PKG_NAME) 为实际值
           subpkgs_stuntman=$(awk '/^define Package\//{print $2}' package/stuntman/Makefile \
             | sed "s/\$(PKG_NAME)/$pkgname_stuntman/g" \
             | cut -d/ -f2)
@@ -654,7 +630,7 @@ jobs:
           echo "[DEBUG] subpkgs_stuntman=$subpkgs_stuntman" >&2
 
           declare -A seen_pkgs
-          # 遍历所有包并提取版本（仅输出 .config 里启用的，且去重）
+
           for pkg in $pkgs $subpkgs_natmapt $subpkgs_stuntman; do
             if ! grep -q "CONFIG_PACKAGE_${pkg}=m" .config && \
                ! grep -q "CONFIG_PACKAGE_${pkg}=y" .config; then
@@ -662,8 +638,13 @@ jobs:
               continue
             fi
 
-            # 去重
             if [[ -n "${seen_pkgs[$pkg]}" ]]; then
+              continue
+            fi
+
+            # 只保留 stuntman-client
+            if [[ "$pkg" == stuntman* && "$pkg" != "stuntman-client" ]]; then
+              echo "[DEBUG] Skip $pkg (only keep stuntman-client)" >&2
               continue
             fi
             
@@ -675,7 +656,6 @@ jobs:
               fi
             done
 
-            # 如果没有单独目录的 Makefile，就用主 Makefile
             if [ -z "$mf" ]; then
               if echo "$subpkgs_natmapt" | grep -q "^$pkg$"; then
                 mf="package/natmapt/Makefile"
@@ -696,7 +676,6 @@ jobs:
             seen_pkgs[$pkg]=1
           done
           
-          # 特殊处理 v2ray-geodata
           if grep -q "CONFIG_PACKAGE_v2ray-geodata" .config; then
             echo "**:ice_cube: v2ray-geoip**|**$(awk -F ':=' '/GEOIP_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
             echo "**:ice_cube: v2ray-geosite**|**$(awk -F ':=' '/GEOSITE_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
@@ -720,30 +699,52 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
         run: |
-          # 获取所有 release 的 tag_name，按创建时间排序
           releases=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             "https://api.github.com/repos/$REPO/releases?per_page=100" \
             | jq -r 'sort_by(.created_at) | reverse | .[].tag_name')
 
-          echo "All releases:"
-          echo "$releases"
+          timestamp_releases=$(echo "$releases" | grep -E '^[0-9]{8}-[0-9]{6}$')
+          echo "All timestamp releases:"
+          echo "$timestamp_releases"
 
-          # 跳过前 3 个，删除其余
-          echo "$releases" | tail -n +4 | while read tag; do
+          # 保留最新 3 个
+          keep_tags=$(echo "$timestamp_releases" | head -n 3)
+          delete_tags=$(echo "$timestamp_releases" | tail -n +4)
+
+          echo "Keep tags:"
+          echo "$keep_tags"
+
+          echo "Delete tags:"
+          echo "$delete_tags"
+
+          # 删除多余的 Release 和对应 tag
+          for tag in $delete_tags; do
             echo "Deleting release and tag: $tag"
 
-            # 获取 release id
             release_id=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
               "https://api.github.com/repos/$REPO/releases/tags/$tag" \
               | jq -r '.id')
 
-            # 删除 release
             if [ "$release_id" != "null" ]; then
               curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
                 "https://api.github.com/repos/$REPO/releases/$release_id"
             fi
 
-            # 删除 tag
             curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
               "https://api.github.com/repos/$REPO/git/refs/tags/$tag"
+          done
+
+          # 额外：清理没有 Release 的孤立 timestamp tag
+          all_tags=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/$REPO/git/refs/tags" \
+            | jq -r '.[].ref' | sed 's|refs/tags/||')
+
+          for tag in $all_tags; do
+            if echo "$tag" | grep -Eq '^[0-9]{8}-[0-9]{6}$'; then
+              if ! echo "$keep_tags" | grep -qx "$tag"; then
+                echo "Deleting orphan timestamp tag: $tag"
+                curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" \
+                  "https://api.github.com/repos/$REPO/git/refs/tags/$tag"
+              fi
+            fi
           done
