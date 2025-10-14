@@ -595,7 +595,7 @@ jobs:
             if [ -n "$version" ]; then
               echo "[DEBUG] Found PKG_VERSION raw=$version" >&2
               case "$version" in
-                *'$('* ) echo "[DEBUG] PKG_VERSION contains make expr, skip direct use" ;;
+                *'$('* ) echo "[DEBUG] PKG_VERSION contains make expr, skip direct use" >&2 ;;
                 * ) echo "${version}-r${release}"; return 0 ;;
               esac
             fi
