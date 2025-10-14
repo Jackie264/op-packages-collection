@@ -478,23 +478,37 @@ jobs:
           echo "CONFIG_SIGNED_PACKAGES=n" >> .config
           echo "CONFIG_PACKAGE_stuntman=m" >> .config
           echo "CONFIG_PACKAGE_natmapt=m" >> .config
+          # 启用 natmapt 的所有子包
+          for sub in \
+            natmapt-client-script-transmission \
+            natmapt-client-script-deluge \
+            natmapt-notify-script-pushbullet \
+            natmapt-notify-script-pushover \
+            natmapt-notify-script-telegram; do
+              echo "CONFIG_PACKAGE_${sub}=m" >> .config
+          done
+          
           echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_Iptables_Transparent_Proxy=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_Nftables_Transparent_Proxy=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Haproxy=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Hysteria=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_IPv6_Nat=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_NaiveProxy=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Libev_Client=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Libev_Server=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Client=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Shadowsocks_Rust_Server=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Client=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_ShadowsocksR_Libev_Server=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_Simple_Obfs=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_SingBox=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_tuic_client=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2_INCLUDE_V2ray_Plugin=y" >> .config
+          # 启用所有需要的功能模块
+          for opt in \
+            Iptables_Transparent_Proxy \
+            Nftables_Transparent_Proxy \
+            INCLUDE_Haproxy \
+            INCLUDE_Hysteria \
+            INCLUDE_IPv6_Nat \
+            INCLUDE_NaiveProxy \
+            INCLUDE_Shadowsocks_Libev_Client \
+            INCLUDE_Shadowsocks_Libev_Server \
+            INCLUDE_Shadowsocks_Rust_Client \
+            INCLUDE_Shadowsocks_Rust_Server \
+            INCLUDE_ShadowsocksR_Libev_Client \
+            INCLUDE_ShadowsocksR_Libev_Server \
+            INCLUDE_Simple_Obfs \
+            INCLUDE_SingBox \
+            INCLUDE_tuic_client \
+            INCLUDE_V2ray_Plugin; do
+              echo "CONFIG_PACKAGE_luci-app-passwall2_${opt}=y" >> .config
+          done
 
           make defconfig
           
