@@ -559,16 +559,19 @@ jobs:
             local mf="$1"
             local version=""
             local release=""
+            echo "[DEBUG] Extracting version from $mf"
 
             # 提取 PKG_RELEASE
             release=$(awk -F ':=' '/^PKG_RELEASE:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             [ -z "$release" ] && release="1"
+            echo "[DEBUG] PKG_RELEASE=$release"
 
             # 1. 直接定义 PKG_VERSION
             version=$(awk -F ':=' '/^PKG_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             if [ -n "$version" ]; then
+              echo "[DEBUG] Found PKG_VERSION raw=$version"
               case "$version" in
-                *'$('* ) version="" ;; # 如果里面还有 $(...)，说明是组合式，继续处理
+                *'$('* ) echo "[DEBUG] PKG_VERSION contains make expr, skip direct use" ;;
                 * ) echo "${version}-r${release}"; return 0 ;;
               esac
             fi
@@ -576,6 +579,7 @@ jobs:
             # 2. UPSTREAM_VERSION + GITHASH
             local up=$(awk -F ':=' '/^PKG_UPSTREAM_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             local gh=$(awk -F ':=' '/^PKG_UPSTREAM_GITHASH:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
+            echo "[DEBUG] PKG_UPSTREAM_VERSION=$up PKG_UPSTREAM_GITHASH=$gh"
             if [ -n "$up" ]; then
               if [ -n "$gh" ]; then
                 echo "${up}~${gh:0:7}-r${release}"
@@ -588,6 +592,7 @@ jobs:
             # 3. SOURCE_DATE + SOURCE_VERSION
             local date=$(awk -F ':=' '/^PKG_SOURCE_DATE:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             local srcver=$(awk -F ':=' '/^PKG_SOURCE_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
+            echo "[DEBUG] PKG_SOURCE_DATE=$date PKG_SOURCE_VERSION=$srcver"
             if [ -n "$date" ] && [ -n "$srcver" ]; then
               echo "${date}~${srcver}-r${release}"
               return 0
@@ -595,11 +600,13 @@ jobs:
 
             # 4. fallback: control 文件
             local control_file=$(find build_dir -type f -path "*/ipkg-*/control" | grep "$(basename "$(dirname "$mf")")" | head -n1)
+            echo "[DEBUG] control_file=$control_file"
             if [ -n "$control_file" ]; then
               version=$(grep '^Version:' "$control_file" | awk '{print $2}')
               [ -n "$version" ] && echo "$version" && return 0
             fi
 
+            echo "[DEBUG] No version found, return unknown"
             echo "unknown"
           }
           
@@ -614,16 +621,27 @@ jobs:
           pkgs_stuntman=$(find package/stuntman -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
           pkgs_natmapt=$(find package/natmapt -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
 
+          echo "[DEBUG] pkgs=$pkgs"
+          echo "[DEBUG] pkgs_stuntman=$pkgs_stuntman"
+          echo "[DEBUG] pkgs_natmapt=$pkgs_natmapt"
+          
           # 遍历所有包并提取版本
           for pkg in $pkgs $pkgs_stuntman $pkgs_natmapt; do
             mf=""
             for base in feeds/passwall_packages package/stuntman package/natmapt; do
-              [ -f "$base/$pkg/Makefile" ] && mf="$base/$pkg/Makefile"
+              if [ -f "$base/$pkg/Makefile" ]; then
+                mf="$base/$pkg/Makefile"
+                echo "[DEBUG] Found Makefile for $pkg at $mf"
+              fi
             done
 
-            [ -z "$mf" ] && continue
+            if [ -z "$mf" ]; then
+              echo "[DEBUG] No Makefile found for $pkg, skip"
+              continue
+            fi
 
             version=$(extract_version "$mf")
+            echo "[DEBUG] Final version for $pkg=$version"
             echo "**:ice_cube: $pkg**|**${version}**" >> "$out"
           done
           
