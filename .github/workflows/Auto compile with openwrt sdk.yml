@@ -573,17 +573,27 @@ jobs:
             local mf="$1"
             local version=""
             local release=""
-            echo "[DEBUG] Extracting version from $mf"
+            echo "[DEBUG] Extracting version for $pkg from $mf" >&2
+
+            # 特殊处理 natmapt 子包：优先使用 SCRIPTS_VERSION
+            if [[ "$pkg" == natmapt-client-* || "$pkg" == natmapt-notify-* ]]; then
+              version=$(awk -F ':=' '/^SCRIPTS_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
+              if [ -n "$version" ]; then
+                echo "[DEBUG] $pkg uses SCRIPTS_VERSION=$version" >&2
+                echo "${version}-r1"
+                return 0
+              fi
+            fi
 
             # 提取 PKG_RELEASE
             release=$(awk -F ':=' '/^PKG_RELEASE:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             [ -z "$release" ] && release="1"
-            echo "[DEBUG] PKG_RELEASE=$release"
+            echo "[DEBUG] PKG_RELEASE=$release" >&2
 
             # 1. 直接定义 PKG_VERSION
             version=$(awk -F ':=' '/^PKG_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             if [ -n "$version" ]; then
-              echo "[DEBUG] Found PKG_VERSION raw=$version"
+              echo "[DEBUG] Found PKG_VERSION raw=$version" >&2
               case "$version" in
                 *'$('* ) echo "[DEBUG] PKG_VERSION contains make expr, skip direct use" ;;
                 * ) echo "${version}-r${release}"; return 0 ;;
@@ -593,7 +603,7 @@ jobs:
             # 2. UPSTREAM_VERSION + GITHASH
             local up=$(awk -F ':=' '/^PKG_UPSTREAM_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             local gh=$(awk -F ':=' '/^PKG_UPSTREAM_GITHASH:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
-            echo "[DEBUG] PKG_UPSTREAM_VERSION=$up PKG_UPSTREAM_GITHASH=$gh"
+            echo "[DEBUG] PKG_UPSTREAM_VERSION=$up PKG_UPSTREAM_GITHASH=$gh" >&2
             if [ -n "$up" ]; then
               if [ -n "$gh" ]; then
                 echo "${up}~${gh:0:7}-r${release}"
@@ -606,7 +616,7 @@ jobs:
             # 3. SOURCE_DATE + SOURCE_VERSION
             local date=$(awk -F ':=' '/^PKG_SOURCE_DATE:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
             local srcver=$(awk -F ':=' '/^PKG_SOURCE_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
-            echo "[DEBUG] PKG_SOURCE_DATE=$date PKG_SOURCE_VERSION=$srcver"
+            echo "[DEBUG] PKG_SOURCE_DATE=$date PKG_SOURCE_VERSION=$srcver" >&2
             if [ -n "$date" ] && [ -n "$srcver" ]; then
               echo "${date}~${srcver}-r${release}"
               return 0
@@ -614,53 +624,72 @@ jobs:
 
             # 4. fallback: control 文件
             local control_file=$(find build_dir -type f -path "*/ipkg-*/control" | grep "$(basename "$(dirname "$mf")")" | head -n1)
-            echo "[DEBUG] control_file=$control_file"
+            echo "[DEBUG] control_file=$control_file" >&2
             if [ -n "$control_file" ]; then
               version=$(grep '^Version:' "$control_file" | awk '{print $2}')
               [ -n "$version" ] && echo "$version" && return 0
             fi
 
-            echo "[DEBUG] No version found, return unknown"
+            echo "[DEBUG] No version found, return unknown" >&2
             echo "unknown"
           }
           
+          # passwall_packages 中的包
           pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
 
-          pkgs_stuntman=$(find package/stuntman -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
-          pkgs_natmapt=$(find package/natmapt -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
+          # 从 natmapt/stuntman 的 Makefile 自动解析子包名
+          subpkgs_natmapt=$(awk '/^define Package\//{print $2}' package/natmapt/Makefile | cut -d/ -f2)
+          subpkgs_stuntman=$(awk '/^define Package\//{print $2}' package/stuntman/Makefile | cut -d/ -f2)
 
-          # 需要处理的包
-          pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
+          # pkgs_stuntman=$(find package/stuntman -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
+          # pkgs_natmapt=$(find package/natmapt -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
 
-          pkgs_stuntman=$(find package/stuntman -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
-          pkgs_natmapt=$(find package/natmapt -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
-
-          echo "[DEBUG] pkgs=$pkgs"
-          echo "[DEBUG] pkgs_stuntman=$pkgs_stuntman"
-          echo "[DEBUG] pkgs_natmapt=$pkgs_natmapt"
+          echo "[DEBUG] pkgs=$pkgs" >&2
+          echo "[DEBUG] subpkgs_natmapt=$subpkgs_natmapt" >&2
+          # echo "[DEBUG] pkgs_stuntman=$pkgs_stuntman"
+          echo "[DEBUG] subpkgs_stuntman=$subpkgs_stuntman" >&2
+          # echo "[DEBUG] pkgs_natmapt=$pkgs_natmapt"
           
-          # 遍历所有包并提取版本
-          for pkg in $pkgs $pkgs_stuntman $pkgs_natmapt; do
+          # 遍历所有包并提取版本（仅输出 .config 里启用的）
+          for pkg in $pkgs $subpkgs_natmapt $subpkgs_stuntman; do
+            if ! grep -q "CONFIG_PACKAGE_${pkg}=m" .config && \
+               ! grep -q "CONFIG_PACKAGE_${pkg}=y" .config; then
+              echo "[DEBUG] $pkg not enabled in .config, skip" >&2
+              continue
+            fi
+            
             mf=""
             for base in feeds/passwall_packages package/stuntman package/natmapt; do
               if [ -f "$base/$pkg/Makefile" ]; then
                 mf="$base/$pkg/Makefile"
-                echo "[DEBUG] Found Makefile for $pkg at $mf"
+                echo "[DEBUG] Found Makefile for $pkg at $mf" >&2
               fi
             done
 
+            # 如果没有单独目录的 Makefile，就用主 Makefile
             if [ -z "$mf" ]; then
-              echo "[DEBUG] No Makefile found for $pkg, skip"
+              if echo "$subpkgs_natmapt" | grep -q "^$pkg$"; then
+                mf="package/natmapt/Makefile"
+              elif echo "$subpkgs_stuntman" | grep -q "^$pkg$"; then
+                mf="package/stuntman/Makefile"
+              fi
+            fi
+            
+            if [ -z "$mf" ]; then
+              echo "[DEBUG] No Makefile found for $pkg, skip" >&2
               continue
             fi
 
-            version=$(extract_version "$mf")
-            echo "[DEBUG] Final version for $pkg=$version"
+            version=$(extract_version "$mf" "$pkg")
+            echo "[DEBUG] Final version for $pkg=$version" >&2
             echo "**:ice_cube: $pkg**|**${version}**" >> "$out"
           done
           
-          echo "**:ice_cube: v2ray-geoip**|**$(awk -F ':=' '/GEOIP_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
-          echo "**:ice_cube: v2ray-geosite**|**$(awk -F ':=' '/GEOSITE_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
+          # 特殊处理 v2ray-geodata
+          if grep -q "CONFIG_PACKAGE_v2ray-geodata" .config; then
+            echo "**:ice_cube: v2ray-geoip**|**$(awk -F ':=' '/GEOIP_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
+            echo "**:ice_cube: v2ray-geosite**|**$(awk -F ':=' '/GEOSITE_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
+          fi
 
           touch "$out"
           echo "status=success" >> $GITHUB_OUTPUT
