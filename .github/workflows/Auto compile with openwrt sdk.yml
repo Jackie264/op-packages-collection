@@ -639,16 +639,18 @@ jobs:
 
           # 从 natmapt/stuntman 的 Makefile 自动解析子包名
           subpkgs_natmapt=$(awk '/^define Package\//{print $2}' package/natmapt/Makefile | cut -d/ -f2)
-          subpkgs_stuntman=$(awk '/^define Package\//{print $2}' package/stuntman/Makefile | cut -d/ -f2)
+          # subpkgs_stuntman=$(awk '/^define Package\//{print $2}' package/stuntman/Makefile | cut -d/ -f2)
+          # 提取 stuntman 的 PKG_NAME
+          pkgname_stuntman=$(awk -F ':=' '/^PKG_NAME:=/{print $2}' package/stuntman/Makefile | sed 's/[[:space:]]//g')
 
-          # pkgs_stuntman=$(find package/stuntman -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
-          # pkgs_natmapt=$(find package/natmapt -mindepth 1 -maxdepth 1 -type f -name Makefile -printf '%h\n' | xargs -r -n1 basename)
+          # 提取子包名，并替换 $(PKG_NAME) 为实际值
+          subpkgs_stuntman=$(awk '/^define Package\//{print $2}' package/stuntman/Makefile \
+            | sed "s/\$(PKG_NAME)/$pkgname_stuntman/g" \
+            | cut -d/ -f2)
 
           echo "[DEBUG] pkgs=$pkgs" >&2
           echo "[DEBUG] subpkgs_natmapt=$subpkgs_natmapt" >&2
-          # echo "[DEBUG] pkgs_stuntman=$pkgs_stuntman"
           echo "[DEBUG] subpkgs_stuntman=$subpkgs_stuntman" >&2
-          # echo "[DEBUG] pkgs_natmapt=$pkgs_natmapt"
           
           # 遍历所有包并提取版本（仅输出 .config 里启用的）
           for pkg in $pkgs $subpkgs_natmapt $subpkgs_stuntman; do
