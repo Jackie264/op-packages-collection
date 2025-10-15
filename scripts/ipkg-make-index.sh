@@ -25,27 +25,12 @@ for pkg in $(find "$pkg_dir" -maxdepth 1 -name '*.ipk' | sort); do
     filetype=$(file -b "$pkg")
     control=""
 
-    if echo "$filetype" | grep -q "ar archive"; then
-        if ar t "$pkg" | grep -q "control.tar.gz"; then
-            control=$(ar p "$pkg" control.tar.gz | tar -xzO ./control 2>/dev/null || true)
-        elif ar t "$pkg" | grep -q "control.tar.xz"; then
-            control=$(ar p "$pkg" control.tar.xz | tar -xJO ./control 2>/dev/null || true)
-        else
-            echo "Warning: no control.tar.gz or control.tar.xz in $pkg" >&2
-            continue
-        fi
-    elif echo "$filetype" | grep -q "tar archive"; then
-        if tar tf "$pkg" | grep -q "control.tar.gz"; then
-            control=$(tar -Oxf "$pkg" ./control.tar.gz | tar -xzO ./control 2>/dev/null || true)
-        elif tar tf "$pkg" | grep -q "control.tar.xz"; then
-            control=$(tar -Oxf "$pkg" ./control.tar.xz | tar -xJO ./control 2>/dev/null || true)
-        else
-            echo "Warning: no control.tar.gz or control.tar.xz in $pkg" >&2
-            continue
-        fi
+    if echo "$filetype" | grep -q "current ar archive"; then
+        control=$(ar p "$pkg" control.tar.gz | tar -xzO ./control 2>/dev/null || \
+                  ar p "$pkg" control.tar.xz | tar -xJO ./control 2>/dev/null || true)
     else
-        echo "Unknown package format: $filetype" >&2
-        continue
+        control=$(tar -Oxf "$pkg" ./control.tar.gz 2>/dev/null | tar -xzO ./control 2>/dev/null || \
+                  tar -Oxf "$pkg" ./control.tar.xz 2>/dev/null | tar -xJO ./control 2>/dev/null || true)
     fi
 
     if [ -z "$control" ]; then
