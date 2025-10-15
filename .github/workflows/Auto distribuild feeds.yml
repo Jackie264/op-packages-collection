@@ -82,11 +82,11 @@ jobs:
                   fi
                   echo
                 done > Packages
+                usign -S -m Packages -s $GITHUB_WORKSPACE/key-build -x Packages.sig
                 gzip -9nc Packages > Packages.gz
-                usign -S -m Packages.gz -s $GITHUB_WORKSPACE/key-build -x Packages.sig
               )
             fi
-
+      
             {
               echo "<html><head><meta charset='utf-8'><title>Feed for ${arch}</title></head><body>"
               echo "<h1>Packages for ${arch}</h1><ul>"
@@ -120,6 +120,12 @@ jobs:
           
           echo "${FEED_VERSION}" > public/latest.txt
 
+      - name: Verify signing key fingerprint
+        run: |
+          echo "${{ secrets.FEED_SIGNING_KEY }}" | base64 -d > key-build
+          echo "The public key fingerprint (filename on device) should be:"
+          usign -p -s key-build | sha256sum | awk '{print $1}'
+          
       - name: Deploy feed to GitHub Pages
         run: |
           cd public
