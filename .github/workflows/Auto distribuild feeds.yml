@@ -1,10 +1,13 @@
-name: auto distribuild feeds
+name: Auto distribuild feeds
 
 on:
   workflow_run:
-    workflows: ["Auto compile with openwrt sdk"]   # 这里写你的编译 workflow 的名字
+    workflows: ["Auto compile with openwrt sdk"]
     types:
       - completed
+
+permissions:
+  contents: write
 
 jobs:
   distribuild:
@@ -69,6 +72,9 @@ jobs:
             done
             echo "</ul></body></html>"
           } > public/${FEED_VERSION}/index.html
+
+          # 生成 latest.txt 文件
+          echo "${FEED_VERSION}" > public/latest.txt
 
       - name: Deploy feed to GitHub Pages
         run: |
