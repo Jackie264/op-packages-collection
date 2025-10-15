@@ -22,11 +22,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Install opkg-utils
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y opkg-utils
           
       - name: Get latest release tag
         id: get_release
@@ -56,9 +51,18 @@ jobs:
 
             cp release_assets/*${arch}*.ipk public/${FEED_VERSION}/${arch}/ 2>/dev/null || true
 
-            if [ "$(ls -A public/${FEED_VERSION}/${arch})" ]; then
-              opkg-make-index public/${FEED_VERSION}/${arch} > public/${FEED_VERSION}/${arch}/Packages
-              gzip -9nc public/${FEED_VERSION}/${arch}/Packages > public/${FEED_VERSION}/${arch}/Packages.gz
+            if [ "$(ls -A public/${FEED_VERSION}/${arch}/*.ipk 2>/dev/null)" ]; then
+              (
+                cd public/${FEED_VERSION}/${arch}
+                rm -f Packages Packages.gz
+                for ipk in *.ipk; do
+                  [ -f "$ipk" ] || continue
+                  echo "Package: ${ipk}"
+                  ar p "$ipk" control.tar.gz | tar -xzO ./control 2>/dev/null
+                  echo
+                done > Packages
+                gzip -9nc Packages > Packages.gz
+              )
             fi
 
             {
