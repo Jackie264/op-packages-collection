@@ -38,6 +38,11 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Restore signing key
+        run: |
+          echo "${{ secrets.FEED_SIGNING_KEY }}" | base64 -d > key-build
+          chmod 600 key-build
+          
       - name: Prepare feed directories
         env:
           FEED_VERSION: 24.10.3
@@ -68,6 +73,7 @@ jobs:
                   echo
                 done > Packages
                 gzip -9nc Packages > Packages.gz
+                usign -S -m Packages.gz -s $GITHUB_WORKSPACE/key-build -x Packages.sig
               )
             fi
 
