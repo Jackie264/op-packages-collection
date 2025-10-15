@@ -47,9 +47,7 @@ jobs:
           for arch in x86_64 aarch64_cortex-a53 arm_cortex-a7_neon-vfpv4; do
             mkdir -p public/${FEED_VERSION}/${arch}
 
-            cp release_assets/luci-*.ipk public/${FEED_VERSION}/${arch}/ 2>/dev/null || true
-
-            cp release_assets/*${arch}*.ipk public/${FEED_VERSION}/${arch}/ 2>/dev/null || true
+            cp release_assets/*.ipk public/${FEED_VERSION}/${arch}/ 2>/dev/null || true
 
             if [ "$(ls -A public/${FEED_VERSION}/${arch}/*.ipk 2>/dev/null)" ]; then
               (
