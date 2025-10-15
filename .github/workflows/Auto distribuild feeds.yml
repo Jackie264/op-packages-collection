@@ -69,19 +69,9 @@ jobs:
             if [ "$(ls -A public/${FEED_VERSION}/${arch}/*.ipk 2>/dev/null)" ]; then
               (
                 cd public/${FEED_VERSION}/${arch}
-                rm -f Packages Packages.gz
-                for ipk in *.ipk; do
-                  [ -f "$ipk" ] || continue
-                  echo "Package: ${ipk}"
-                  filetype=$(file -b "$ipk")
-                  if echo "$filetype" | grep -q "current ar archive"; then
-                    ar p "$ipk" control.tar.gz | tar -xzO ./control 2>/dev/null
-                  else
-                    tar -Oxf "$ipk" ./control.tar.gz 2>/dev/null | tar -xzO ./control 2>/dev/null || \
-                    tar -Oxf "$ipk" ./control.tar.xz 2>/dev/null | tar -xJO ./control 2>/dev/null
-                  fi
-                  echo
-                done > Packages
+                rm -f Packages Packages.gz Packages.sig
+                $GITHUB_WORKSPACE/scripts/ipkg-make-index.sh . > Packages
+
                 usign -S -m Packages -s $GITHUB_WORKSPACE/key-build -x Packages.sig
                 gzip -9nc Packages > Packages.gz
               )
