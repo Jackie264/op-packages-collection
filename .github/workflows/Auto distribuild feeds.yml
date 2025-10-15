@@ -5,6 +5,7 @@ on:
     workflows: ["Auto compile with openwrt sdk"]
     types:
       - completed
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -12,7 +13,7 @@ permissions:
 jobs:
   distribuild:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -38,21 +39,16 @@ jobs:
         run: |
           mkdir -p public/${FEED_VERSION}
 
-          # 自动检测 release_assets/upload 下有哪些架构目录
           for arch in $(ls release_assets/upload); do
             mkdir -p public/${FEED_VERSION}/${arch}
 
-            # luci 包（架构无关，复制到每个架构目录）
             cp -r release_assets/mypackage/*.ipk public/${FEED_VERSION}/${arch}/ || true
 
-            # 架构相关包
             cp -r release_assets/upload/${arch}/packages/*.ipk public/${FEED_VERSION}/${arch}/ || true
 
-            # 生成 Packages 索引
             ./staging_dir/host/bin/opkg-make-index public/${FEED_VERSION}/${arch} > public/${FEED_VERSION}/${arch}/Packages
             gzip -9nc public/${FEED_VERSION}/${arch}/Packages > public/${FEED_VERSION}/${arch}/Packages.gz
 
-            # 生成架构目录 index.html
             {
               echo "<html><head><meta charset='utf-8'><title>Feed for ${arch}</title></head><body>"
               echo "<h1>Packages for ${arch}</h1><ul>"
@@ -63,7 +59,6 @@ jobs:
             } > public/${FEED_VERSION}/${arch}/index.html
           done
 
-          # 顶层 index.html
           {
             echo "<html><head><meta charset='utf-8'><title>Feed ${FEED_VERSION}</title></head><body>"
             echo "<h1>Feed version ${FEED_VERSION}</h1><ul>"
@@ -73,7 +68,6 @@ jobs:
             echo "</ul></body></html>"
           } > public/${FEED_VERSION}/index.html
 
-          # 生成 latest.txt 文件
           echo "${FEED_VERSION}" > public/latest.txt
 
       - name: Deploy feed to GitHub Pages
