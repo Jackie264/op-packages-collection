@@ -22,10 +22,16 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Install usign
+      
+      - name: Build usign
         run: |
           sudo apt-get update
-          sudo apt-get install -y usign
+          sudo apt-get install -y build-essential cmake git
+          git clone https://git.openwrt.org/project/usign.git
+          cd usign
+          cmake .
+          make
+          sudo cp usign /usr/local/bin/
           
       - name: Get latest release tag
         id: get_release
