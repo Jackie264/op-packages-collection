@@ -57,6 +57,7 @@ jobs:
         env:
           FEED_VERSION: 24.10.3
         run: |
+          chmod +x $GITHUB_WORKSPACE/scripts/ipkg-make-index.sh
           mkdir -p public/${FEED_VERSION}
 
           for arch in x86_64 aarch64_cortex-a53 arm_cortex-a7_neon-vfpv4; do
