@@ -44,15 +44,17 @@ jobs:
         run: |
           mkdir -p public/${FEED_VERSION}
 
-          for arch in $(ls release_assets/upload); do
+          for arch in x86_64 aarch64_cortex-a53 arm_cortex-a7_neon-vfpv4; do
             mkdir -p public/${FEED_VERSION}/${arch}
 
-            cp -r release_assets/mypackage/*.ipk public/${FEED_VERSION}/${arch}/ || true
+            cp release_assets/luci-*.ipk public/${FEED_VERSION}/${arch}/ 2>/dev/null || true
 
-            cp -r release_assets/upload/${arch}/packages/*.ipk public/${FEED_VERSION}/${arch}/ || true
+            cp release_assets/*${arch}*.ipk public/${FEED_VERSION}/${arch}/ 2>/dev/null || true
 
-            ./staging_dir/host/bin/opkg-make-index public/${FEED_VERSION}/${arch} > public/${FEED_VERSION}/${arch}/Packages
-            gzip -9nc public/${FEED_VERSION}/${arch}/Packages > public/${FEED_VERSION}/${arch}/Packages.gz
+            if [ "$(ls -A public/${FEED_VERSION}/${arch})" ]; then
+              ./staging_dir/host/bin/opkg-make-index public/${FEED_VERSION}/${arch} > public/${FEED_VERSION}/${arch}/Packages
+              gzip -9nc public/${FEED_VERSION}/${arch}/Packages > public/${FEED_VERSION}/${arch}/Packages.gz
+            fi
 
             {
               echo "<html><head><meta charset='utf-8'><title>Feed for ${arch}</title></head><body>"
