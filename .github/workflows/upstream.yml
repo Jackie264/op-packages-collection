@@ -56,7 +56,8 @@ jobs:
     - name: Initialize missing submodules
       run: |
         declare -A repos=(
-          [packages/openwrt-passwall2]=https://github.com/xiaorouji/openwrt-passwall2
+          [packages/openwrt-passwall2]=https://github.com/Jackie264/openwrt-passwall2
+          [packages/openwrt-passwall-packages]=https://github.com/Jackie264/openwrt-passwall-packages
           [packages/openwrt-natmapt]=https://github.com/muink/openwrt-natmapt
           [packages/luci-app-natmapt]=https://github.com/muink/luci-app-natmapt
           [packages/openwrt-stuntman]=https://github.com/muink/openwrt-stuntman
