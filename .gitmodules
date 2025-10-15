@@ -33,3 +33,6 @@
 [submodule "packages/luci-app-advanced-reboot"]
     path = packages/luci-app-advanced-reboot
     url = https://github.com/stangri/luci-app-advanced-reboot
+[submodule "packages/openwrt-passwall-packages"]
+	path = packages/openwrt-passwall-packages
+	url = https://github.com/Jackie264/openwrt-passwall-packages
