@@ -40,7 +40,7 @@ jobs:
 
       - name: Prepare feed directories
         env:
-          FEED_VERSION: ${{ steps.get_release.outputs.tag }}
+          FEED_VERSION: 24.10.3
         run: |
           mkdir -p public/${FEED_VERSION}
 
@@ -90,6 +90,18 @@ jobs:
             echo "</ul></body></html>"
           } > public/${FEED_VERSION}/index.html
 
+          {
+            echo "<html><head><meta charset='utf-8'><title>OpenWrt Feeds</title></head><body>"
+            echo "<h1>Available Feeds</h1><ul>"
+            for ver in $(ls public); do
+              if [ -d "public/$ver" ]; then
+                echo "<li><a href=\"$ver/\">$ver</a></li>"
+              fi
+            done
+            echo "<li><a href=\"latest.txt\">latest.txt (points to 24.10.3)</a></li>"
+            echo "</ul></body></html>"
+          } > public/index.html
+          
           echo "${FEED_VERSION}" > public/latest.txt
 
       - name: Deploy feed to GitHub Pages
