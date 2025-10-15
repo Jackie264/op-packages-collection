@@ -58,7 +58,13 @@ jobs:
                 for ipk in *.ipk; do
                   [ -f "$ipk" ] || continue
                   echo "Package: ${ipk}"
-                  ar p "$ipk" control.tar.gz | tar -xzO ./control 2>/dev/null
+                  filetype=$(file -b "$ipk")
+                  if echo "$filetype" | grep -q "current ar archive"; then
+                    ar p "$ipk" control.tar.gz | tar -xzO ./control 2>/dev/null
+                  else
+                    tar -Oxf "$ipk" ./control.tar.gz 2>/dev/null | tar -xzO ./control 2>/dev/null || \
+                    tar -Oxf "$ipk" ./control.tar.xz 2>/dev/null | tar -xJO ./control 2>/dev/null
+                  fi
                   echo
                 done > Packages
                 gzip -9nc Packages > Packages.gz
