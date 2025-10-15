@@ -119,12 +119,6 @@ jobs:
           } > public/index.html
           
           echo "${FEED_VERSION}" > public/latest.txt
-
-      - name: Verify signing key fingerprint
-        run: |
-          echo "${{ secrets.FEED_SIGNING_KEY }}" | base64 -d > key-build
-          echo "The public key fingerprint (filename on device) should be:"
-          usign -p -s key-build | sha256sum | awk '{print $1}'
           
       - name: Deploy feed to GitHub Pages
         run: |
