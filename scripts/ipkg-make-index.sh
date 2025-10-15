@@ -22,15 +22,38 @@ for pkg in $(find "$pkg_dir" -maxdepth 1 -name '*.ipk' | sort); do
     file_size=$(stat -L -c%s "$pkg")
     sha256sum=$(sha256sum "$pkg" | cut -d' ' -f1)
     filename=$(basename "$pkg")
+    filetype=$(file -b "$pkg")
+    control=""
 
-    if ar t "$pkg" | grep -q "control.tar.gz"; then
-        ar p "$pkg" control.tar.gz | tar -xzO ./control
-    elif ar t "$pkg" | grep -q "control.tar.xz"; then
-        ar p "$pkg" control.tar.xz | tar -xJO ./control
+    if echo "$filetype" | grep -q "ar archive"; then
+        if ar t "$pkg" | grep -q "control.tar.gz"; then
+            control=$(ar p "$pkg" control.tar.gz | tar -xzO ./control 2>/dev/null || true)
+        elif ar t "$pkg" | grep -q "control.tar.xz"; then
+            control=$(ar p "$pkg" control.tar.xz | tar -xJO ./control 2>/dev/null || true)
+        else
+            echo "Warning: no control.tar.gz or control.tar.xz in $pkg" >&2
+            continue
+        fi
+    elif echo "$filetype" | grep -q "tar archive"; then
+        if tar tf "$pkg" | grep -q "control.tar.gz"; then
+            control=$(tar -Oxf "$pkg" ./control.tar.gz | tar -xzO ./control 2>/dev/null || true)
+        elif tar tf "$pkg" | grep -q "control.tar.xz"; then
+            control=$(tar -Oxf "$pkg" ./control.tar.xz | tar -xJO ./control 2>/dev/null || true)
+        else
+            echo "Warning: no control.tar.gz or control.tar.xz in $pkg" >&2
+            continue
+        fi
     else
-        echo "Warning: no control.tar.gz or control.tar.xz in $pkg" >&2
+        echo "Unknown package format: $filetype" >&2
         continue
-    fi | sed -e "s/^Description:/Filename: $filename\\
+    fi
+
+    if [ -z "$control" ]; then
+        echo "Warning: failed to extract control file from $pkg" >&2
+        continue
+    fi
+
+    echo "$control" | sed -e "s/^Description:/Filename: $filename\\
 Size: $file_size\\
 SHA256sum: $sha256sum\\
 Description:/"
