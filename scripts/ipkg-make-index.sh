@@ -21,13 +21,16 @@ for pkg in $(find "$pkg_dir" -maxdepth 1 -name '*.ipk' | sort); do
 
     file_size=$(stat -L -c%s "$pkg")
     sha256sum=$(sha256sum "$pkg" | cut -d' ' -f1)
-
-    # 只保留文件名作为 Filename 字段（和官方一致）
     filename=$(basename "$pkg")
 
-    # 输出 control 文件内容，并插入 Filename/Size/SHA256sum
-    tar -xzOf "$pkg" ./control.tar.gz | tar xzOf - ./control | \
-    sed -e "s/^Description:/Filename: $filename\\
+    if ar t "$pkg" | grep -q "control.tar.gz"; then
+        ar p "$pkg" control.tar.gz | tar -xzO ./control
+    elif ar t "$pkg" | grep -q "control.tar.xz"; then
+        ar p "$pkg" control.tar.xz | tar -xJO ./control
+    else
+        echo "Warning: no control.tar.gz or control.tar.xz in $pkg" >&2
+        continue
+    fi | sed -e "s/^Description:/Filename: $filename\\
 Size: $file_size\\
 SHA256sum: $sha256sum\\
 Description:/"
