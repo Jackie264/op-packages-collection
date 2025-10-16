@@ -68,6 +68,7 @@ jobs:
           [packages/luci-app-advanced-reboot]=https://github.com/stangri/luci-app-advanced-reboot
           [packages/luci-app-adguardhome]=https://github.com/Jackie264/luci-app-adguardhome
           [packages/luci-app-vlmcsd]=https://github.com/Jackie264/luci-app-vlmcsd
+          [packages/vlmcsd]=https://github.com/Jackie264/vlmcsd
         )
 
         for path in "${!repos[@]}"; do
