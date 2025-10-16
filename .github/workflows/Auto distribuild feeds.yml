@@ -83,7 +83,6 @@ jobs:
 
                 usign -S -m Packages -s $GITHUB_WORKSPACE/key-build -x Packages.sig
                 gzip -9nc Packages > Packages.gz
-                mkdir -p .stfolder
               )
             fi
           done
@@ -103,7 +102,7 @@ jobs:
               -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
               -p $RSYNC_PORT \
-              ${DEPLOY_USER}@${DEPLOY_SERVER} "mkdir -p ${DEPLOY_PATH}"
+              ${DEPLOY_USER}@${DEPLOY_SERVER} "mkdir -p ${DEPLOY_PATH}/.stfolder"
           rsync $RSYNC_OPTS \
             -e "ssh -i deploy_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $RSYNC_PORT" \
             public/ ${DEPLOY_USER}@${DEPLOY_SERVER}:${DEPLOY_PATH}/
