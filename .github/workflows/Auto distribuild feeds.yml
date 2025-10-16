@@ -100,11 +100,13 @@ jobs:
         run: |
           echo "$DEPLOY_KEY" | base64 -d > deploy_key
           chmod 600 deploy_key
+          ssh -i deploy_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $RSYNC_PORT \
+            ${DEPLOY_USER}@${DEPLOY_SERVER} "whoami && pwd && ls -ld ${DEPLOY_PATH} || echo 'DEPLOY_PATH not found'"
           ssh -i deploy_key \
               -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null \
               -p $RSYNC_PORT \
-              ${DEPLOY_USER}@${DEPLOY_SERVER} "mkdir -p ${DEPLOY_PATH}/.stfolder"
+              ${DEPLOY_USER}@${DEPLOY_SERVER} "mkdir -vp ${DEPLOY_PATH}/.stfolder"
           rsync $RSYNC_OPTS \
             -e "ssh -i deploy_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $RSYNC_PORT" \
             public/ ${DEPLOY_USER}@${DEPLOY_SERVER}:${DEPLOY_PATH}/
