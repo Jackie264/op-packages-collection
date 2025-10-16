@@ -42,3 +42,6 @@
 [submodule "packages/luci-app-vlmcsd"]
 	path = packages/luci-app-vlmcsd
 	url = https://github.com/Jackie264/luci-app-vlmcsd
+[submodule "packages/vlmcsd"]
+	path = packages/vlmcsd
+	url = https://github.com/Jackie264/vlmcsd
