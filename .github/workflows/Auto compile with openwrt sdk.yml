@@ -21,7 +21,8 @@ on:
 env:
   TZ: Asia/Shanghai
   passwall2: Jackie264/openwrt-passwall2
-  packages: Jackie264/openwrt-passwall-packages
+  passwall2packs: Jackie264/openwrt-passwall-packages
+  vlmcsd: Jackie/vlmscd
 
 
 jobs:
@@ -166,7 +167,7 @@ jobs:
           cd sdk
 
           cat > feeds.conf.default << EOF
-          src-git passwall_packages https://github.com/${{ env.packages }}.git;main
+          src-git passwall_packages https://github.com/${{ env.passwall2packs }}.git;main
           src-link mypackage ${GITHUB_WORKSPACE}/packages
           src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ matrix.sdk_ver }}
           src-git packages https://github.com/openwrt/packages.git;openwrt-${{ matrix.sdk_ver }}
@@ -217,14 +218,22 @@ jobs:
           echo "CONFIG_ALL=n" >> .config
           echo "CONFIG_AUTOREMOVE=n" >> .config
           echo "CONFIG_LUCI_LANG_zh_Hans=n" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-adguardhome=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-advanced-reboot=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-cpu-status=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-log-viewer=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-natmapt=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-temp-status=m" >> .config
+          echo "CONFIG_PACKAGE_luci-app-vlmcsd=m" >> .config
           echo "CONFIG_PACKAGE_luci-theme-argon=m" >> .config
           make defconfig
+          echo " "
+          echo "make package/luci-app-adguardhome/{clean,compile} -j$(nproc)"
+          make package/luci-app-adguardhome/{clean,compile} -j$(nproc) V=s
+          echo " "
+          echo "make package/luci-app-vlmcsd/{clean,compile} -j$(nproc)"
+          make package/luci-app-vlmcsd/{clean,compile} -j$(nproc) V=s          
           echo " "
           echo "make package/luci-app-passwall2/{clean,compile} -j$(nproc)"
           make package/luci-app-passwall2/{clean,compile} -j$(nproc) V=s
@@ -256,6 +265,7 @@ jobs:
 
           find "${GITHUB_WORKSPACE}/mypackage" -type f -name "*.ipk" -printf "%p\n"
           rm -f ../mypackage/natmapt_*.ipk || true
+          rm -f ../mypackage/vlmcsd_*.ipk || true
           make clean
           rm .config .config.old
           rm -rf feeds/mypackage feeds/mypackage.*
@@ -420,8 +430,9 @@ jobs:
         run: |
           cd sdk
           cat > feeds.conf.default << EOF
-          src-git passwall_packages https://github.com/${{ env.packages }}.git;main
+          src-git passwall_packages https://github.com/${{ env.passwall2packs }}.git;main
           src-git passwall2 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ env.passwall2 }}.git;${{ github.ref_name }}
+          src-git vlmcsd https://github.com/${{ env.vlmcsd }}.git;main
           src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ matrix.sdk_ver }}
           src-git packages https://github.com/openwrt/packages.git;openwrt-${{ matrix.sdk_ver }}
           src-git luci https://github.com/openwrt/luci.git;openwrt-${{ matrix.sdk_ver }}
@@ -468,6 +479,7 @@ jobs:
           echo "CONFIG_SIGNED_PACKAGES=n" >> .config
           echo "CONFIG_PACKAGE_stuntman=m" >> .config
           echo "CONFIG_PACKAGE_stuntman-client=m" >> .config
+          echo "CONFIG_PACKAGE_vlmcsd=m" >> .config
           echo "CONFIG_PACKAGE_natmapt=m" >> .config
           for sub in \
             natmapt-client-script-transmission \
