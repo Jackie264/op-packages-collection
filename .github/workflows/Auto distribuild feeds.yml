@@ -86,7 +86,7 @@ jobs:
               )
             fi
           done
-          cd ${{ github.repository }}/public
+          cd ../../
           mkdir -p .stfolder
 
       - name: Sync feeds to self-hosted server
