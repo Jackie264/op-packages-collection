@@ -432,7 +432,6 @@ jobs:
           cat > feeds.conf.default << EOF
           src-git passwall_packages https://github.com/${{ env.passwall2packs }}.git;main
           src-git passwall2 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ env.passwall2 }}.git;${{ github.ref_name }}
-          src-git vlmcsd https://github.com/${{ env.vlmcsd }}.git;main
           src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ matrix.sdk_ver }}
           src-git packages https://github.com/openwrt/packages.git;openwrt-${{ matrix.sdk_ver }}
           src-git luci https://github.com/openwrt/luci.git;openwrt-${{ matrix.sdk_ver }}
@@ -445,6 +444,7 @@ jobs:
 
           git clone --depth 1 https://github.com/muink/openwrt-stuntman.git package/stuntman
           git clone --depth 1 https://github.com/muink/openwrt-natmapt.git package/natmapt
+          git clone --depth 1 https://github.com/${{ env.vlmcsd }}.git package/vlmcsd
 
           #--------------------------------------begin_patches------------------------------------------
           echo "Start applying the patch"
@@ -538,6 +538,7 @@ jobs:
           make package/feeds/passwall_packages/v2ray-plugin/compile -j$(nproc) V=s
           make package/stuntman/{clean,compile} -j$(nproc) V=s
           make package/natmapt/{clean,compile} -j$(nproc) V=s
+          make package/vlmcsd/{clean,compile} -j$(nproc) V=s
           echo "status=success" >> $GITHUB_OUTPUT
         
       - name: Organize ${{ matrix.platform }} files
@@ -549,6 +550,7 @@ jobs:
           cp bin/packages/*/passwall_packages/*.ipk upload/${{ matrix.platform }}/packages/ || true
           cp bin/packages/*/base/stuntman-client*.ipk upload/${{ matrix.platform }}/packages/ || true
           cp bin/packages/*/base/natmapt*.ipk upload/${{ matrix.platform }}/packages/ || true
+          cp bin/packages/*/base/vlmcsd*.ipk upload/${{ matrix.platform }}/packages/ || true
 
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
           echo "status=success" >> $GITHUB_OUTPUT
