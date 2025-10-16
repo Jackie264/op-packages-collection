@@ -123,7 +123,9 @@ jobs:
         run: |
           echo "$DEPLOY_KEY" | base64 -d > deploy_key
           chmod 600 deploy_key
-          rsync $RSYNC_OPTS -e "ssh -i deploy_key -o StrictHostKeyChecking=no -p $RSYNC_PORT" \
+          rsync $RSYNC_OPTS \
+            --no-perms --no-owner --no-group \
+            -e "ssh -i deploy_key -o StrictHostKeyChecking=no -p $RSYNC_PORT" \
             public/ ${DEPLOY_USER}@${DEPLOY_SERVER}:${DEPLOY_PATH}/
             
       - name: Deploy feed to GitHub Pages
