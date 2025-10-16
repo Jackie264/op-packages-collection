@@ -75,6 +75,7 @@ jobs:
 
                 usign -S -m Packages -s $GITHUB_WORKSPACE/key-build -x Packages.sig
                 gzip -9nc Packages > Packages.gz
+                mkdir -p .stfolder
               )
             fi
           done
