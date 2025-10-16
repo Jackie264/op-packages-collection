@@ -39,3 +39,6 @@
 [submodule "packages/luci-app-adguardhome"]
 	path = packages/luci-app-adguardhome
 	url = https://github.com/Jackie264/luci-app-adguardhome
+[submodule "packages/luci-app-vlmcsd"]
+	path = packages/luci-app-vlmcsd
+	url = https://github.com/Jackie264/luci-app-vlmcsd
