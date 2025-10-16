@@ -36,3 +36,6 @@
 [submodule "packages/openwrt-passwall-packages"]
 	path = packages/openwrt-passwall-packages
 	url = https://github.com/Jackie264/openwrt-passwall-packages
+[submodule "packages/luci-app-adguardhome"]
+	path = packages/luci-app-adguardhome
+	url = https://github.com/Jackie264/luci-app-adguardhome
