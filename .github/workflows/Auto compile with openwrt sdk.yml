@@ -22,7 +22,7 @@ env:
   TZ: Asia/Shanghai
   passwall2: Jackie264/openwrt-passwall2
   passwall2packs: Jackie264/openwrt-passwall-packages
-  vlmcsd: Jackie264/vlmscd
+  vlmcsd: Jackie264/vlmcsd
 
 
 jobs:
