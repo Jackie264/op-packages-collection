@@ -23,7 +23,15 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       
-      - name: Build usign
+      - name: Cache usign binary
+        id: cache-usign
+        uses: actions/cache@v4
+        with:
+          path: /usr/local/bin/usign
+          key: usign-binary-v1
+
+      - name: Build usign if cache missed
+        if: steps.cache-usign.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential cmake git
@@ -79,39 +87,6 @@ jobs:
               )
             fi
           done
-#      
-#            {
-#              echo "<html><head><meta charset='utf-8'><title>Feed for ${arch}</title></head><body>"
-#              echo "<h1>Packages for ${arch}</h1><ul>"
-#              for f in $(ls public/${FEED_VERSION}/${arch}); do
-#                echo "<li><a href=\"$f\">$f</a></li>"
-#              done
-#              echo "</ul></body></html>"
-#            } > public/${FEED_VERSION}/${arch}/index.html
-#          done
-#
-#          {
-#            echo "<html><head><meta charset='utf-8'><title>Feed ${FEED_VERSION}</title></head><body>"
-#            echo "<h1>Feed version ${FEED_VERSION}</h1><ul>"
-#            for arch in $(ls public/${FEED_VERSION}); do
-#              echo "<li><a href=\"$arch/\">$arch</a></li>"
-#            done
-#            echo "</ul></body></html>"
-#          } > public/${FEED_VERSION}/index.html
-#
-#          {
-#            echo "<html><head><meta charset='utf-8'><title>OpenWrt Feeds</title></head><body>"
-#            echo "<h1>Available Feeds</h1><ul>"
-#            for ver in $(ls public); do
-#              if [ -d "public/$ver" ]; then
-#                echo "<li><a href=\"$ver/\">$ver</a></li>"
-#              fi
-#            done
-#            echo "<li><a href=\"latest.txt\">latest.txt (points to 24.10.3)</a></li>"
-#            echo "</ul></body></html>"
-#          } > public/index.html
-#          
-#          echo "${FEED_VERSION}" > public/latest.txt
 
       - name: Sync feeds to self-hosted server
         env:
@@ -124,6 +99,9 @@ jobs:
         run: |
           echo "$DEPLOY_KEY" | base64 -d > deploy_key
           chmod 600 deploy_key
+          ssh -i deploy_key -p $RSYNC_PORT ${DEPLOY_USER}@${DEPLOY_SERVER} "touch ${DEPLOY_PATH}/testfile"
+          ssh -i deploy_key -o StrictHostKeyChecking=no -p $RSYNC_PORT \
+            ${DEPLOY_USER}@${DEPLOY_SERVER} "mkdir -p ${DEPLOY_PATH}"
           rsync $RSYNC_OPTS \
             --no-perms --no-owner --no-group \
             -e "ssh -i deploy_key -o StrictHostKeyChecking=no -p $RSYNC_PORT" \
