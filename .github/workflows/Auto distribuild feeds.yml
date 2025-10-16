@@ -86,8 +86,7 @@ jobs:
               )
             fi
           done
-          cd ../../
-          mkdir -p .stfolder
+          mkdir -p public/.stfolder
 
       - name: Sync feeds to self-hosted server
         env:
@@ -95,7 +94,7 @@ jobs:
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
           DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
           DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
-          RSYNC_OPTS: "-avz --delete"
+          RSYNC_OPTS: "-avz --delete --no-perms --no-owner --no-group --omit-dir-times"
           RSYNC_PORT: ${{ secrets.RSYNC_PORT }}
         run: |
           echo "$DEPLOY_KEY" | base64 -d > deploy_key
@@ -107,7 +106,7 @@ jobs:
               -o UserKnownHostsFile=/dev/null \
               -p $RSYNC_PORT \
               ${DEPLOY_USER}@${DEPLOY_SERVER} "mkdir -vp ${DEPLOY_PATH}/.stfolder"
-          rsync $RSYNC_OPTS \
+          rsync $RSYNC_OPTS --exclude '.stfolder' \
             -e "ssh -i deploy_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -p $RSYNC_PORT" \
             public/ ${DEPLOY_USER}@${DEPLOY_SERVER}:${DEPLOY_PATH}/
             
