@@ -29,10 +29,15 @@ jobs:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
 
       - name: View release by tag (luci-theme-argon)
-        run: gh release view ${{ steps.argon_tag.outputs.tag }} --repo Jackie264/luci-theme-argon --json tagName,isDraft,isPrerelease,assets
+        id: argon_view
+        run: |
+          gh release view ${{ steps.argon_tag.outputs.tag }} \
+            --repo Jackie264/luci-theme-argon \
+            --json assets --jq '.assets[].name' > argon_assets.txt
+          echo "assets=$(cat argon_assets.txt | paste -sd ',' -)" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
-    
+
       - name: List releases (luci-app-advanced-reboot)
         run: gh release list --repo Jackie264/luci-app-advanced-reboot
         env:
@@ -48,7 +53,12 @@ jobs:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
 
       - name: View release by tag (luci-app-advanced-reboot)
-        run: gh release view ${{ steps.reboot_tag.outputs.tag }} --repo Jackie264/luci-app-advanced-reboot --json tagName,isDraft,isPrerelease,assets
+        id: reboot_view
+        run: |
+          gh release view ${{ steps.reboot_tag.outputs.tag }} \
+            --repo Jackie264/luci-app-advanced-reboot \
+            --json assets --jq '.assets[].name' > reboot_assets.txt
+          echo "assets=$(cat reboot_assets.txt | paste -sd ',' -)" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
 
@@ -67,6 +77,20 @@ jobs:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
 
       - name: View release by tag (openwrt-passwall2)
-        run: gh release view ${{ steps.passwall2_tag.outputs.tag }} --repo Jackie264/openwrt-passwall2 --json tagName,isDraft,isPrerelease,assets
+        id: passwall2_view
+        run: |
+          gh release view ${{ steps.passwall2_tag.outputs.tag }} \
+            --repo Jackie264/openwrt-passwall2 \
+            --json assets --jq '.assets[].name' > passwall2_assets.txt
+          echo "assets=$(cat passwall2_assets.txt | paste -sd ',' -)" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+
+      # 🔥 汇总 summary
+      - name: Summary of latest releases
+        run: |
+          echo "### Latest Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **luci-theme-argon**: tag = ${{ steps.argon_tag.outputs.tag }}, assets = ${{ steps.argon_view.outputs.assets }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **luci-app-advanced-reboot**: tag = ${{ steps.reboot_tag.outputs.tag }}, assets = ${{ steps.reboot_view.outputs.assets }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **luci-app-passwall2**: tag = ${{ steps.passwall2_tag.outputs.tag }}, assets = ${{ steps.passwall2_view.outputs.assets }}" >> $GITHUB_STEP_SUMMARY
