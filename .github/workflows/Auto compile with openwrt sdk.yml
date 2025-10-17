@@ -700,6 +700,9 @@ jobs:
     needs: [job_auto_compile_core, job_build_luci_pack]
     permissions:
       contents: write
+    strategy:
+      matrix:
+        platform: [x86_64, aarch64_cortex-a53, arm_cortex-a7_neon-vfpv4]
     runs-on: ubuntu-latest
     steps:
       - name: Download firmware artifact
