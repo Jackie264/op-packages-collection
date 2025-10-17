@@ -167,7 +167,6 @@ jobs:
           cd sdk
 
           cat > feeds.conf.default << EOF
-          src-git passwall_packages https://github.com/${{ env.passwall2packs }}.git;main
           src-link mypackage ${GITHUB_WORKSPACE}/packages
           src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ matrix.sdk_ver }}
           src-git packages https://github.com/openwrt/packages.git;openwrt-${{ matrix.sdk_ver }}
@@ -219,14 +218,11 @@ jobs:
           echo "CONFIG_AUTOREMOVE=n" >> .config
           echo "CONFIG_LUCI_LANG_zh_Hans=n" >> .config
           echo "CONFIG_PACKAGE_luci-app-adguardhome=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-advanced-reboot=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-cpu-status=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-log-viewer=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-natmapt=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-temp-status=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-vlmcsd=m" >> .config
-          echo "CONFIG_PACKAGE_luci-theme-argon=m" >> .config
           make defconfig
           echo " "
           echo "make package/luci-app-adguardhome/{clean,compile} -j$(nproc)"
@@ -234,12 +230,6 @@ jobs:
           echo " "
           echo "make package/luci-app-vlmcsd/{clean,compile} -j$(nproc)"
           make package/luci-app-vlmcsd/{clean,compile} -j$(nproc) V=s          
-          echo " "
-          echo "make package/luci-app-passwall2/{clean,compile} -j$(nproc)"
-          make package/luci-app-passwall2/{clean,compile} -j$(nproc) V=s
-          echo " "
-          echo "make package/luci-app-advanced-reboot/{clean,compile} -j$(nproc)"
-          make package/luci-app-advanced-reboot/{clean,compile} -j$(nproc) V=s
           echo " "
           echo "make package/luci-app-cpu-status/{clean,compile} -j$(nproc)"
           make package/luci-app-cpu-status/{clean,compile} -j$(nproc) V=s
@@ -252,9 +242,6 @@ jobs:
           echo " "
           echo "make package/luci-app-temp-status/{clean,compile} -j$(nproc)"
           make package/luci-app-temp-status/{clean,compile} -j$(nproc) V=s
-          echo " "
-          echo "make package/luci-theme-argon/{clean,compile} -j$(nproc)"
-          make package/luci-theme-argon/{clean,compile} -j$(nproc) V=s
           echo " "
 
           mkdir -p ${GITHUB_WORKSPACE}/mypackage
@@ -272,6 +259,29 @@ jobs:
           cd ..
           echo "status=success" >> $GITHUB_OUTPUT
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+
+      - name: Setup GitHub CLI
+        uses: cli/cli-action@v2
+        with:
+          version: latest
+          
+      - name: Download prebuilt luci packages
+        if: steps.compile.outputs.status == 'success'
+        run: |
+          gh release download latest \
+            --repo Jackie264/luci-theme-argon \
+            --pattern "luci-theme-argon*_all.ipk" \
+            --dir "${GITHUB_WORKSPACE}/mypackage"
+
+          gh release download latest \
+            --repo Jackie264/luci-app-advanced-reboot \
+            --pattern "luci-app-advanced-reboot*_all.ipk" \
+            --dir "${GITHUB_WORKSPACE}/mypackage"
+
+          gh release download latest \
+            --repo Jackie264/openwrt-passwall2 \
+            --pattern "luci-app-passwall2*_all.ipk" \
+            --dir "${GITHUB_WORKSPACE}/mypackage"
 
       - name: Download release.txt
         uses: actions/download-artifact@v5
@@ -430,8 +440,6 @@ jobs:
         run: |
           cd sdk
           cat > feeds.conf.default << EOF
-          src-git passwall_packages https://github.com/${{ env.passwall2packs }}.git;main
-          src-git passwall2 https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ env.passwall2 }}.git;${{ github.ref_name }}
           src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ matrix.sdk_ver }}
           src-git packages https://github.com/openwrt/packages.git;openwrt-${{ matrix.sdk_ver }}
           src-git luci https://github.com/openwrt/luci.git;openwrt-${{ matrix.sdk_ver }}
@@ -448,7 +456,6 @@ jobs:
 
           #--------------------------------------begin_patches------------------------------------------
           echo "Start applying the patch"
-
 
           rm -rf temp_resp
           git clone -b master --single-branch https://github.com/openwrt/packages.git temp_resp
@@ -489,27 +496,6 @@ jobs:
             natmapt-notify-script-telegram; do
               echo "CONFIG_PACKAGE_${sub}=m" >> .config
           done
-          
-          echo "CONFIG_PACKAGE_luci-app-passwall2=m" >> .config
-          for opt in \
-            Iptables_Transparent_Proxy \
-            Nftables_Transparent_Proxy \
-            INCLUDE_Haproxy \
-            INCLUDE_Hysteria \
-            INCLUDE_IPv6_Nat \
-            INCLUDE_NaiveProxy \
-            INCLUDE_Shadowsocks_Libev_Client \
-            INCLUDE_Shadowsocks_Libev_Server \
-            INCLUDE_Shadowsocks_Rust_Client \
-            INCLUDE_Shadowsocks_Rust_Server \
-            INCLUDE_ShadowsocksR_Libev_Client \
-            INCLUDE_ShadowsocksR_Libev_Server \
-            INCLUDE_Simple_Obfs \
-            INCLUDE_SingBox \
-            INCLUDE_tuic_client \
-            INCLUDE_V2ray_Plugin; do
-              echo "CONFIG_PACKAGE_luci-app-passwall2_${opt}=y" >> .config
-          done
 
           make defconfig
           
@@ -523,35 +509,40 @@ jobs:
         id: compile
         run: |
           cd sdk
-          make package/feeds/passwall_packages/chinadns-ng/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/geoview/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/tcping/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/xray-core/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/v2ray-geodata/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/hysteria/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/naiveproxy/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/shadowsocks-rust/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/shadowsocksr-libev/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/simple-obfs/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/sing-box/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/tuic-client/compile -j$(nproc) V=s
-          make package/feeds/passwall_packages/v2ray-plugin/compile -j$(nproc) V=s
           make package/stuntman/{clean,compile} -j$(nproc) V=s
           make package/natmapt/{clean,compile} -j$(nproc) V=s
           make package/vlmcsd/{clean,compile} -j$(nproc) V=s
           echo "status=success" >> $GITHUB_OUTPUT
-        
+
+      - name: Setup GitHub CLI
+        if: steps.compile.outputs.status == 'success'
+        uses: cli/cli-action@v2
+        with:
+          version: latest
+
+      - name: Download passwall2 dependencies
+        id: downlod_depends
+        if: steps.compile.outputs.status == 'success'
+        run: |
+          mkdir -p depends_package
+          gh release download latest \
+            --repo Jackie264/openwrt-passwall2 \
+            --pattern "passwall_packages_ipk_${{ matrix.platform }}.zip" \
+            --dir depends_package
+          unzip -o depends_package/passwall_packages_ipk_${{ matrix.platform }}.zip -d depends_package/
+          rm depends_package/passwall_packages_ipk_${{ matrix.platform }}.zip
+          echo "status=success" >> $GITHUB_OUTPUT
+          
       - name: Organize ${{ matrix.platform }} files
         id: organize
-        if: steps.compile.outputs.status == 'success'
+        if: steps.downlod_depends.outputs.status == 'success'
         run: |
           cd sdk
           mkdir -p upload/${{ matrix.platform }}/packages
-          cp bin/packages/*/passwall_packages/*.ipk upload/${{ matrix.platform }}/packages/ || true
           cp bin/packages/*/base/stuntman-client*.ipk upload/${{ matrix.platform }}/packages/ || true
           cp bin/packages/*/base/natmapt*.ipk upload/${{ matrix.platform }}/packages/ || true
           cp bin/packages/*/base/vlmcsd*.ipk upload/${{ matrix.platform }}/packages/ || true
-
+          cp ../../depends_package/*.ipk upload/${{ matrix.platform }}/packages/ || true
           echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Upload firmware artifact
