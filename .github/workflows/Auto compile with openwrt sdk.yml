@@ -579,7 +579,7 @@ jobs:
     
   job_auto_compile_release:
     name: Auto compile release [${{ matrix.platform }}]
-    needs: [job_auto_compile_core, job_build_luci_pack]
+    needs: [job_auto_compile_core]
     permissions:
       contents: write
     strategy:
