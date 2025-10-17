@@ -307,13 +307,13 @@ jobs:
           tag_name: ${{needs.job_check.outputs.release_time}}
           files: ${{ env.FIRMWARE }}/mypackage/*.ipk
 
-  job_auto_compile:
+  job_auto_compile_core:
+    name: Auto compile core [${{ matrix.platform }}]
+    needs: job_check
     if: ${{ needs.job_check.outputs.has_update == 'true' && needs.job_check.outputs.prerelease == 'false' }}
     permissions:
       contents: write
-    needs: job_check
     runs-on: ubuntu-latest
-    name: build (${{ matrix.platform }})
     strategy:
       fail-fast: false
       matrix:
@@ -552,21 +552,20 @@ jobs:
           cp bin/packages/*/base/natmapt*.ipk upload/${{ matrix.platform }}/packages/ || true
           cp bin/packages/*/base/vlmcsd*.ipk upload/${{ matrix.platform }}/packages/ || true
 
-          echo "FIRMWARE=$PWD" >> $GITHUB_ENV
           echo "status=success" >> $GITHUB_OUTPUT
 
-      - name: Download fixed release.txt
-        uses: actions/download-artifact@v5
+      - name: Upload firmware artifact
+        if: steps.organize.outputs.status == 'success'
+        uses: actions/upload-artifact@v4
         with:
-          name: release-info-fixed
-          path: ${{ github.workspace }}
-    
-      - name: Generate release info
-        id: info
-        if: steps.compile.outputs.status == 'success'
+          name: firmware-${{ matrix.platform }}
+          path: sdk/upload
+          
+      - name: Generate release info (compile side)
+        id: geninfo
         run: |
           cd sdk
-          out="${GITHUB_WORKSPACE}/release.txt"
+          out="release-info-${{ matrix.platform }}.txt"
           echo "### Packages Version" >> "$out"
           echo "**Package name**|**Version**" >> "$out"
           echo "-|-" >> "$out"
@@ -698,15 +697,50 @@ jobs:
           touch "$out"
           echo "status=success" >> $GITHUB_OUTPUT
 
+      - name: Upload release info artifact
+        if: steps.geninfo.outputs.status == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-info-${{ matrix.platform }}
+          path: release-info-${{ matrix.platform }}.txt
+    
+  job_auto_compile_release:
+    name: Auto compile release [${{ matrix.platform }}]
+    needs: [job_auto_compile_core, job_build_luci_pack]
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download firmware artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: firmware-${{ matrix.platform }}
+          path: ${{ github.workspace }}/firmware
+          
+      - name: Download fixed release.txt
+        uses: actions/download-artifact@v5
+        with:
+          name: release-info-fixed
+          path: ${{ github.workspace }}
+    
+      - name: Download platform release info
+        uses: actions/download-artifact@v5
+        with:
+          name: release-info-${{ matrix.platform }}
+          path: ${{ github.workspace }}
+
+      - name: Merge release info
+        run: |
+          cat release-info-${{ matrix.platform }}.txt >> release.txt
+
       - name: Upload firmware to release
         uses: softprops/action-gh-release@v2
-        if: steps.info.outputs.status == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{needs.job_check.outputs.release_time}}
           body_path: release.txt
-          files: ${{ env.FIRMWARE }}/upload/**/*
+          files: ${{ github.workspace }}/firmware/**/*
 
       - name: Delete old releases and tags, keep latest 3
         env:
