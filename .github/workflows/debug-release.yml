@@ -1,0 +1,44 @@
+name: Debug Release Assets
+
+on:
+  workflow_dispatch:   # 手动触发
+  # 你也可以加上 schedule 或 push 触发
+
+jobs:
+  debug-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check gh version
+        run: gh --version
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+
+      - name: List releases (luci-theme-argon)
+        run: gh release list --repo Jackie264/luci-theme-argon
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+
+      - name: View latest release assets (luci-theme-argon)
+        run: gh release view latest --repo Jackie264/luci-theme-argon --json assets --jq '.assets[].name'
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+
+      - name: List releases (luci-app-advanced-reboot)
+        run: gh release list --repo Jackie264/luci-app-advanced-reboot
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+
+      - name: View latest release assets (luci-app-advanced-reboot)
+        run: gh release view latest --repo Jackie264/luci-app-advanced-reboot --json assets --jq '.assets[].name'
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+
+      - name: List releases (openwrt-passwall2)
+        run: gh release list --repo Jackie264/openwrt-passwall2
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+
+      - name: View latest release assets (openwrt-passwall2)
+        run: gh release view latest --repo Jackie264/openwrt-passwall2 --json assets --jq '.assets[].name'
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
