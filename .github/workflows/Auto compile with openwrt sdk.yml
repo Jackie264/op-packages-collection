@@ -261,7 +261,7 @@ jobs:
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
       - name: Setup GitHub CLI
-        uses: cli/cli-action@v2
+        uses: cli/cli@v2
         with:
           version: latest
           
@@ -516,7 +516,7 @@ jobs:
 
       - name: Setup GitHub CLI
         if: steps.compile.outputs.status == 'success'
-        uses: cli/cli-action@v2
+        uses: cli/cli@v2
         with:
           version: latest
 
