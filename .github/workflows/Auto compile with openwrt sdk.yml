@@ -550,7 +550,7 @@ jobs:
           cp bin/packages/*/base/stuntman-client*.ipk upload/${{ matrix.platform }}/packages/ || true
           cp bin/packages/*/base/natmapt*.ipk upload/${{ matrix.platform }}/packages/ || true
           cp bin/packages/*/base/vlmcsd*.ipk upload/${{ matrix.platform }}/packages/ || true
-          cp ../../depends_package/*.ipk upload/${{ matrix.platform }}/packages/ || true
+          cp ${GITHUB_WORKSPACE}/depends_package/*.ipk upload/${{ matrix.platform }}/packages/ || true
           echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Upload firmware artifact
