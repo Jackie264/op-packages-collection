@@ -555,139 +555,21 @@ jobs:
       - name: Generate release info (compile side)
         id: geninfo
         run: |
-          cd sdk
           out="release-info-${{ matrix.platform }}.txt"
           echo "### Packages Version" >> "$out"
           echo "**Package name**|**Version**" >> "$out"
           echo "-|-" >> "$out"
 
-          extract_version() {
-            local mf="$1"
-            local version=""
-            local release=""
-            echo "[DEBUG] Extracting version for $pkg from $mf" >&2
+          for f in upload/${{ matrix.platform }}/packages/*.ipk; do
+            [ -f "$f" ] || continue
+            fname=$(basename "$f")
 
-            if [[ "$pkg" == natmapt-client-* || "$pkg" == natmapt-notify-* ]]; then
-              version=$(awk -F ':=' '/^SCRIPTS_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
-              if [ -n "$version" ]; then
-                echo "[DEBUG] $pkg uses SCRIPTS_VERSION=$version" >&2
-                echo "${version}-r1"
-                return 0
-              fi
-            fi
+            pkg=$(echo "$fname" | cut -d_ -f1)
+            ver=$(echo "$fname" | cut -d_ -f2)
 
-            release=$(awk -F ':=' '/^PKG_RELEASE:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
-            [ -z "$release" ] && release="1"
-            echo "[DEBUG] PKG_RELEASE=$release" >&2
-
-            version=$(awk -F ':=' '/^PKG_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
-            if [ -n "$version" ]; then
-              echo "[DEBUG] Found PKG_VERSION raw=$version" >&2
-              case "$version" in
-                *'$('* ) echo "[DEBUG] PKG_VERSION contains make expr, skip direct use" >&2 ;;
-                * ) echo "${version}-r${release}"; return 0 ;;
-              esac
-            fi
-
-            local up=$(awk -F ':=' '/^PKG_UPSTREAM_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
-            local gh=$(awk -F ':=' '/^PKG_UPSTREAM_GITHASH:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
-            echo "[DEBUG] PKG_UPSTREAM_VERSION=$up PKG_UPSTREAM_GITHASH=$gh" >&2
-            if [ -n "$up" ]; then
-              if [ -n "$gh" ]; then
-                echo "${up}~${gh:0:7}-r${release}"
-              else
-                echo "${up}-r${release}"
-              fi
-              return 0
-            fi
-
-            local date=$(awk -F ':=' '/^PKG_SOURCE_DATE:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
-            local srcver=$(awk -F ':=' '/^PKG_SOURCE_VERSION:=/{print $2}' "$mf" | sed 's/[[:space:]]//g')
-            echo "[DEBUG] PKG_SOURCE_DATE=$date PKG_SOURCE_VERSION=$srcver" >&2
-            if [ -n "$date" ] && [ -n "$srcver" ]; then
-              echo "${date}~${srcver}-r${release}"
-              return 0
-            fi
-
-            local control_file=$(find build_dir -type f -path "*/ipkg-*/control" | grep "$(basename "$(dirname "$mf")")" | head -n1)
-            echo "[DEBUG] control_file=$control_file" >&2
-            if [ -n "$control_file" ]; then
-              version=$(grep '^Version:' "$control_file" | awk '{print $2}')
-              [ -n "$version" ] && echo "$version" && return 0
-            fi
-
-            echo "[DEBUG] No version found, return unknown" >&2
-            echo "unknown"
-          }
-          
-          pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
-
-          subpkgs_natmapt=$(awk '/^define Package\//{print $2}' package/natmapt/Makefile | cut -d/ -f2)
-          subpkgs_vlmcsd=$(awk '/^define Package\//{print $2}' package/vlmcsd/Makefile | cut -d/ -f2)
-          pkgname_stuntman=$(awk -F ':=' '/^PKG_NAME:=/{print $2}' package/stuntman/Makefile | sed 's/[[:space:]]//g')
-
-          subpkgs_stuntman=$(awk '/^define Package\//{print $2}' package/stuntman/Makefile \
-            | sed "s/\$(PKG_NAME)/$pkgname_stuntman/g" \
-            | cut -d/ -f2)
-
-          echo "[DEBUG] pkgs=$pkgs" >&2
-          echo "[DEBUG] subpkgs_natmapt=$subpkgs_natmapt" >&2
-          echo "[DEBUG] subpkgs_vlmcsd=$subpkgs_vlmcsd" >&2
-          echo "[DEBUG] subpkgs_stuntman=$subpkgs_stuntman" >&2
-
-          declare -A seen_pkgs
-
-          for pkg in $pkgs $subpkgs_natmapt $subpkgs_stuntman $subpkgs_vlmcsd; do
-            if ! grep -q "CONFIG_PACKAGE_${pkg}=m" .config && \
-               ! grep -q "CONFIG_PACKAGE_${pkg}=y" .config; then
-              echo "[DEBUG] $pkg not enabled in .config, skip" >&2
-              continue
-            fi
-
-            if [[ -n "${seen_pkgs[$pkg]}" ]]; then
-              continue
-            fi
-
-            # 只保留 stuntman-client
-            if [[ "$pkg" == stuntman* && "$pkg" != "stuntman-client" ]]; then
-              echo "[DEBUG] Skip $pkg (only keep stuntman-client)" >&2
-              continue
-            fi
-            
-            mf=""
-            for base in feeds/passwall_packages package/stuntman package/natmapt package/vlmcsd; do
-              if [ -f "$base/$pkg/Makefile" ]; then
-                mf="$base/$pkg/Makefile"
-                echo "[DEBUG] Found Makefile for $pkg at $mf" >&2
-              fi
-            done
-
-            if [ -z "$mf" ]; then
-              if echo "$subpkgs_natmapt" | grep -q "^$pkg$"; then
-                mf="package/natmapt/Makefile"
-              elif echo "$subpkgs_stuntman" | grep -q "^$pkg$"; then
-                mf="package/stuntman/Makefile"
-              elif echo "$subpkgs_vlmcsd" | grep -q "^$pkg$"; then
-                mf="package/vlmcsd/Makefile"
-              fi
-            fi
-            
-            if [ -z "$mf" ]; then
-              echo "[DEBUG] No Makefile found for $pkg, skip" >&2
-              continue
-            fi
-
-            version=$(extract_version "$mf" "$pkg")
-            echo "[DEBUG] Final version for $pkg=$version" >&2
-            echo "**:ice_cube: $pkg**|**${version}**" >> "$out"
-
-            seen_pkgs[$pkg]=1
+            echo "[DEBUG] Found $pkg version=$ver from $fname" >&2
+            echo "**:ice_cube: $pkg**|**$ver**" >> "$out"
           done
-          
-          if grep -q "CONFIG_PACKAGE_v2ray-geodata" .config; then
-            echo "**:ice_cube: v2ray-geoip**|**$(awk -F ':=' '/GEOIP_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
-            echo "**:ice_cube: v2ray-geosite**|**$(awk -F ':=' '/GEOSITE_VER:=/{print $2}' feeds/passwall_packages/v2ray-geodata/Makefile)**" >> "$out"
-          fi
 
           touch "$out"
           echo "status=success" >> $GITHUB_OUTPUT
@@ -753,7 +635,6 @@ jobs:
           echo "All timestamp releases:"
           echo "$timestamp_releases"
 
-          # 保留最新 3 个
           keep_tags=$(echo "$timestamp_releases" | head -n 3)
           delete_tags=$(echo "$timestamp_releases" | tail -n +4)
 
@@ -763,7 +644,6 @@ jobs:
           echo "Delete tags:"
           echo "$delete_tags"
 
-          # 删除多余的 Release 和对应 tag
           for tag in $delete_tags; do
             echo "Deleting release and tag: $tag"
 
@@ -780,7 +660,6 @@ jobs:
               "https://api.github.com/repos/$REPO/git/refs/tags/$tag"
           done
 
-          # 额外：清理没有 Release 的孤立 timestamp tag
           all_tags=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
             "https://api.github.com/repos/$REPO/git/refs/tags" \
             | jq -r '.[].ref' | sed 's|refs/tags/||')
