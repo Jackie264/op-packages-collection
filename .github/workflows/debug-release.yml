@@ -4,7 +4,6 @@ permissions:
 
 on:
   workflow_dispatch:   # 手动触发
-  # 你也可以加上 schedule 或 push 触发
 
 jobs:
   debug-release:
@@ -20,8 +19,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
 
-      - name: View release by tag
-        run: gh release view v2.4.3 --repo Jackie264/luci-theme-argon --json tagName,isDraft,isPrerelease,assets
+      - name: Get latest tag (luci-theme-argon)
+        id: argon_tag
+        run: |
+          tag=$(gh release list --repo Jackie264/luci-theme-argon --limit 1 --json tagName --jq '.[0].tagName')
+          echo "tag=$tag"
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+
+      - name: View release by tag (luci-theme-argon)
+        run: gh release view ${{ steps.argon_tag.outputs.tag }} --repo Jackie264/luci-theme-argon --json tagName,isDraft,isPrerelease,assets
         env:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
     
@@ -30,8 +38,17 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
 
-      - name: View latest release assets (luci-app-advanced-reboot)
-        run: gh release view latest --repo Jackie264/luci-app-advanced-reboot --json assets --jq '.assets[].name'
+      - name: Get latest tag (luci-app-advanced-reboot)
+        id: reboot_tag
+        run: |
+          tag=$(gh release list --repo Jackie264/luci-app-advanced-reboot --limit 1 --json tagName --jq '.[0].tagName')
+          echo "tag=$tag"
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+
+      - name: View release by tag (luci-app-advanced-reboot)
+        run: gh release view ${{ steps.reboot_tag.outputs.tag }} --repo Jackie264/luci-app-advanced-reboot --json tagName,isDraft,isPrerelease,assets
         env:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
 
@@ -40,7 +57,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
 
-      - name: View latest release assets (openwrt-passwall2)
-        run: gh release view latest --repo Jackie264/openwrt-passwall2 --json assets --jq '.assets[].name'
+      - name: Get latest tag (openwrt-passwall2)
+        id: passwall2_tag
+        run: |
+          tag=$(gh release list --repo Jackie264/openwrt-passwall2 --limit 1 --json tagName --jq '.[0].tagName')
+          echo "tag=$tag"
+          echo "tag=$tag" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+
+      - name: View release by tag (openwrt-passwall2)
+        run: gh release view ${{ steps.passwall2_tag.outputs.tag }} --repo Jackie264/openwrt-passwall2 --json tagName,isDraft,isPrerelease,assets
         env:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
