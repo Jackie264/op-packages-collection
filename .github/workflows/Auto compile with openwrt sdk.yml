@@ -148,7 +148,35 @@ jobs:
         run: |
           git submodule sync --recursive
           git submodule update --init --recursive
-          
+
+      - name: Download prebuilt luci packages
+        id: download_luci
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+        run: |
+          set -e
+
+          download_latest() {
+            local repo=$1
+            local pattern=$2
+            local name=$3
+
+            echo ">>> Processing $name from $repo"
+            tag=$(gh release list --repo "$repo" --limit 1 --json tagName --jq '.[0].tagName')
+            echo "Latest tag for $name: $tag"
+
+            mkdir -p "${GITHUB_WORKSPACE}/mypackage"
+            gh release download "$tag" \
+              --repo "$repo" \
+              --pattern "$pattern" \
+              --dir "${GITHUB_WORKSPACE}/mypackage" \
+              --clobber
+          }
+
+          download_latest "Jackie264/luci-theme-argon" "luci-theme-argon*_all.ipk" "luci-theme-argon"
+          download_latest "Jackie264/luci-app-advanced-reboot" "luci-app-advanced-reboot*_all.ipk" "luci-app-advanced-reboot"
+          download_latest "Jackie264/openwrt-passwall2" "luci-app-passwall2*_all.ipk" "luci-app-passwall2"
+
       - name: Initialization environment
         if: steps.cache-sdk.outputs.cache-hit != 'true'
         run: |
@@ -209,6 +237,7 @@ jobs:
           
       - name: Compile luci-packages
         id: compile
+        if: steps.download_luci.outputs.status == 'success'
         run: |
           cd sdk
           echo "CONFIG_ALL_NONSHARED=n" > .config
@@ -258,29 +287,6 @@ jobs:
           cd ..
           echo "status=success" >> $GITHUB_OUTPUT
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-          
-      - name: Download prebuilt luci packages
-        id: download_luci
-        if: steps.compile.outputs.status == 'success'
-        env:
-          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
-        run: |
-          gh release download latest \
-            --repo Jackie264/luci-theme-argon \
-            --pattern "luci-theme-argon*_all.ipk" \
-            --dir "${GITHUB_WORKSPACE}/mypackage"
-
-          gh release download latest \
-            --repo Jackie264/luci-app-advanced-reboot \
-            --pattern "luci-app-advanced-reboot*_all.ipk" \
-            --dir "${GITHUB_WORKSPACE}/mypackage"
-
-          gh release download latest \
-            --repo Jackie264/openwrt-passwall2 \
-            --pattern "luci-app-passwall2*_all.ipk" \
-            --dir "${GITHUB_WORKSPACE}/mypackage"
-            
-          echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Download release.txt
         uses: actions/download-artifact@v5
@@ -289,7 +295,7 @@ jobs:
           path: ${{ github.workspace }}
 
       - name: Fix missing versions from built ipks
-        if: steps.download_luci.outputs.status == 'success'
+        if: steps.compile.outputs.status == 'success'
         run: |
           out="${GITHUB_WORKSPACE}/release.txt"
           for ipk in $(find "${GITHUB_WORKSPACE}/mypackage" -type f -name "luci-*.ipk"); do
@@ -521,12 +527,18 @@ jobs:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
         run: |
           mkdir -p depends_package
-          gh release download latest \
+          tag=$(gh release list --repo Jackie264/openwrt-passwall2 --limit 1 --json tagName --jq '.[0].tagName')
+          echo "Using tag: $tag"
+
+          gh release download "$tag" \
             --repo Jackie264/openwrt-passwall2 \
             --pattern "passwall_packages_ipk_${{ matrix.platform }}.zip" \
-            --dir depends_package
+            --dir depends_package \
+            --clobber
+
           unzip -o depends_package/passwall_packages_ipk_${{ matrix.platform }}.zip -d depends_package/
           rm depends_package/passwall_packages_ipk_${{ matrix.platform }}.zip
+
           echo "status=success" >> $GITHUB_OUTPUT
           
       - name: Organize ${{ matrix.platform }} files
