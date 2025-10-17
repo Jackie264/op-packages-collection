@@ -623,6 +623,7 @@ jobs:
           pkgs=$(ls feeds/passwall_packages -I v2ray-geodata | grep -E "chinadns-ng|geoview|tcping|xray-core|hysteria|naiveproxy|shadowsocks-rust|shadowsocksr-libev|simple-obfs|sing-box|tuic-client|v2ray-plugin")
 
           subpkgs_natmapt=$(awk '/^define Package\//{print $2}' package/natmapt/Makefile | cut -d/ -f2)
+          subpkgs_vlmcsd=$(awk '/^define Package\//{print $2}' package/vlmcsd/Makefile | cut -d/ -f2)
           pkgname_stuntman=$(awk -F ':=' '/^PKG_NAME:=/{print $2}' package/stuntman/Makefile | sed 's/[[:space:]]//g')
 
           subpkgs_stuntman=$(awk '/^define Package\//{print $2}' package/stuntman/Makefile \
@@ -631,11 +632,12 @@ jobs:
 
           echo "[DEBUG] pkgs=$pkgs" >&2
           echo "[DEBUG] subpkgs_natmapt=$subpkgs_natmapt" >&2
+          echo "[DEBUG] subpkgs_vlmcsd=$subpkgs_vlmcsd" >&2
           echo "[DEBUG] subpkgs_stuntman=$subpkgs_stuntman" >&2
 
           declare -A seen_pkgs
 
-          for pkg in $pkgs $subpkgs_natmapt $subpkgs_stuntman; do
+          for pkg in $pkgs $subpkgs_natmapt $subpkgs_stuntman $subpkgs_vlmcsd; do
             if ! grep -q "CONFIG_PACKAGE_${pkg}=m" .config && \
                ! grep -q "CONFIG_PACKAGE_${pkg}=y" .config; then
               echo "[DEBUG] $pkg not enabled in .config, skip" >&2
@@ -653,7 +655,7 @@ jobs:
             fi
             
             mf=""
-            for base in feeds/passwall_packages package/stuntman package/natmapt; do
+            for base in feeds/passwall_packages package/stuntman package/natmapt package/vlmcsd; do
               if [ -f "$base/$pkg/Makefile" ]; then
                 mf="$base/$pkg/Makefile"
                 echo "[DEBUG] Found Makefile for $pkg at $mf" >&2
@@ -665,6 +667,8 @@ jobs:
                 mf="package/natmapt/Makefile"
               elif echo "$subpkgs_stuntman" | grep -q "^$pkg$"; then
                 mf="package/stuntman/Makefile"
+              elif echo "$subpkgs_vlmcsd" | grep -q "^$pkg$"; then
+                mf="package/vlmcsd/Makefile"
               fi
             fi
             
