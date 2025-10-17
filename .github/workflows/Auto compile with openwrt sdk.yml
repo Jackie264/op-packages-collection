@@ -319,7 +319,7 @@ jobs:
 
   job_auto_compile_core:
     name: Auto compile core [${{ matrix.platform }}]
-    needs: job_check
+    needs: [job_check, job_build_luci_pack]
     if: ${{ needs.job_check.outputs.has_update == 'true' && needs.job_check.outputs.prerelease == 'false' }}
     permissions:
       contents: write
