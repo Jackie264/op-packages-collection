@@ -176,9 +176,9 @@ jobs:
           download_latest "Jackie264/luci-theme-argon" "luci-theme-argon*_all.ipk" "luci-theme-argon"
           download_latest "Jackie264/luci-app-advanced-reboot" "luci-app-advanced-reboot*_all.ipk" "luci-app-advanced-reboot"
           download_latest "Jackie264/openwrt-passwall2" "luci-app-passwall2*_all.ipk" "luci-app-passwall2"
+          echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Initialization environment
-        if: steps.cache-sdk.outputs.cache-hit != 'true'
         run: |
           wget ${{ matrix.sdk_url }}
           file_name=$(echo ${{ matrix.sdk_url }} | awk -F/ '{print $NF}')
