@@ -20,11 +20,11 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
 
-      - name: View latest release assets (luci-theme-argon)
-        run: gh release view latest --repo Jackie264/luci-theme-argon --json tagName,isDraft,isPrerelease,assets --jq .
+      - name: View release by tag
+        run: gh release view v2.4.3 --repo Jackie264/luci-theme-argon --json tagName,isDraft,isPrerelease,assets
         env:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
-
+    
       - name: List releases (luci-app-advanced-reboot)
         run: gh release list --repo Jackie264/luci-app-advanced-reboot
         env:
