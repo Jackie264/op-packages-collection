@@ -260,10 +260,10 @@ jobs:
           echo "status=success" >> $GITHUB_OUTPUT
           echo "FIRMWARE=$PWD" >> $GITHUB_ENV
 
-      - name: Setup GitHub CLI
-        uses: cli/cli@v2
-        with:
-          version: latest
+#      - name: Setup GitHub CLI
+#        uses: cli/cli@v2
+#        with:
+#          version: latest
           
       - name: Download prebuilt luci packages
         if: steps.compile.outputs.status == 'success'
@@ -514,11 +514,11 @@ jobs:
           make package/vlmcsd/{clean,compile} -j$(nproc) V=s
           echo "status=success" >> $GITHUB_OUTPUT
 
-      - name: Setup GitHub CLI
-        if: steps.compile.outputs.status == 'success'
-        uses: cli/cli@v2
-        with:
-          version: latest
+#      - name: Setup GitHub CLI
+#        if: steps.compile.outputs.status == 'success'
+#        uses: cli/cli@v2
+#        with:
+#          version: latest
 
       - name: Download passwall2 dependencies
         id: downlod_depends
