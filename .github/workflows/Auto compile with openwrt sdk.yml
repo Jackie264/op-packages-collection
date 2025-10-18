@@ -506,18 +506,18 @@ jobs:
         run: |
           cd sdk
           mkdir -p upload/${{ matrix.platform }}/packages
-          cp bin/packages/*/base/stuntman-client*.ipk upload/${{ matrix.platform }}/packages/ || true
-          cp bin/packages/*/base/natmapt*.ipk upload/${{ matrix.platform }}/packages/ || true
-          cp bin/packages/*/base/vlmcsd*.ipk upload/${{ matrix.platform }}/packages/ || true
-          cp ${GITHUB_WORKSPACE}/depends_package/*.ipk upload/${{ matrix.platform }}/packages/ || true
+          cp bin/packages/*/base/stuntman-client*.ipk ${GITHUB_WORKSPACE}/upload/${{ matrix.platform }}/packages/ || true
+          cp bin/packages/*/base/natmapt*.ipk ${GITHUB_WORKSPACE}/upload/${{ matrix.platform }}/packages/ || true
+          cp bin/packages/*/base/vlmcsd*.ipk ${GITHUB_WORKSPACE}/upload/${{ matrix.platform }}/packages/ || true
+          cp ${GITHUB_WORKSPACE}/depends_package/*.ipk ${GITHUB_WORKSPACE}/upload/${{ matrix.platform }}/packages/ || true
           echo "status=success" >> $GITHUB_OUTPUT
 
-      - name: Upload firmware artifact
+      - name: Upload core packages artifact
         if: steps.organize.outputs.status == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: firmware-${{ matrix.platform }}
-          path: sdk/upload
+          name: core_pack-${{ matrix.platform }}
+          path: upload
           
       - name: Generate release info (compile side)
         id: geninfo
@@ -527,7 +527,7 @@ jobs:
           echo "**Package name**|**Version**" >> "$out"
           echo "-|-" >> "$out"
 
-          for f in upload/${{ matrix.platform }}/packages/*.ipk; do
+          for f in ${GITHUB_WORKSPACE}/upload/${{ matrix.platform }}/packages/*.ipk; do
             [ -f "$f" ] || continue
             fname=$(basename "$f")
 
@@ -558,11 +558,11 @@ jobs:
         platform: [x86_64, aarch64_cortex-a53, arm_cortex-a7_neon-vfpv4]
     runs-on: ubuntu-latest
     steps:
-      - name: Download firmware artifact
+      - name: Download core packages artifact
         uses: actions/download-artifact@v5
         with:
-          name: firmware-${{ matrix.platform }}
-          path: ${{ github.workspace }}/firmware
+          name: core_pack-${{ matrix.platform }}
+          path: ${{ github.workspace }}/core_pack
           
       - name: Download fixed release.txt
         uses: actions/download-artifact@v5
@@ -587,8 +587,7 @@ jobs:
         with:
           tag_name: ${{needs.job_check.outputs.release_time}}
           body_path: release.txt
-          files: ${{ github.workspace }}/firmware/**/*
-          overwrite_files: true
+          files: ${{ github.workspace }}/core_pack/**/*
 
       - name: Delete old releases and tags, keep latest 3
         env:
