@@ -23,7 +23,9 @@ env:
   passwall2: Jackie264/openwrt-passwall2
   passwall2packs: Jackie264/openwrt-passwall-packages
   vlmcsd: Jackie264/vlmcsd
-
+  SDK_VER: "24.10"
+  LUCI_VER: "24.10"
+  SDK_URL: "https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
 
 jobs:
   job_check:
@@ -108,21 +110,27 @@ jobs:
           path: release.txt
 
   job_build_luci_pack:
-    name: Build luci packages [${{ matrix.luci_ver }}]
+    name: Build luci package [${{ matrix.package }}]
     permissions:
       contents: write
     needs: job_check
     if: needs.job_check.outputs.has_update == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.compile.outputs.status }}
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - sdk_ver: "24.10"
-            luci_ver: "24.10"
-            sdk_url: https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        package:
+          - luci-app-adguardhome
+          - luci-app-vlmcsd
+          - luci-app-cpu-status
+          - luci-app-log
+          - luci-app-natmapt
+          - luci-app-temp-status
+
     steps:
-      - name: Install packages
+      - name: Install build dependencies
         run: |
           sudo -E rm -rf /usr/share/dotnet /etc/mysql /etc/php /usr/local/lib/android
           echo "Install packages"
@@ -149,39 +157,22 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --recursive
 
-      - name: Download prebuilt luci packages
-        id: download_luci
-        env:
-          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
-        run: |
-          set -e
+      - name: Cache OpenWrt dl
+        uses: actions/cache@v4
+        with:
+          path: sdk/dl
+          key: ${{ runner.os }}-openwrt-dl-${{ env.SDK_VER }}
 
-          download_latest() {
-            local repo=$1
-            local pattern=$2
-            local name=$3
-
-            echo ">>> Processing $name from $repo"
-            tag=$(gh release list --repo "$repo" --limit 1 --json tagName --jq '.[0].tagName')
-            echo "Latest tag for $name: $tag"
-
-            mkdir -p "${GITHUB_WORKSPACE}/mypackage"
-            gh release download "$tag" \
-              --repo "$repo" \
-              --pattern "$pattern" \
-              --dir "${GITHUB_WORKSPACE}/mypackage" \
-              --clobber
-          }
-
-          download_latest "Jackie264/luci-theme-argon" "luci-theme-argon*_all.ipk" "luci-theme-argon"
-          download_latest "Jackie264/luci-app-advanced-reboot" "luci-app-advanced-reboot*_all.ipk" "luci-app-advanced-reboot"
-          download_latest "Jackie264/openwrt-passwall2" "luci-app-passwall2*_all.ipk" "luci-app-passwall2"
-          echo "status=success" >> $GITHUB_OUTPUT
+      - name: Cache OpenWrt staging_dir
+        uses: actions/cache@v4
+        with:
+          path: sdk/staging_dir
+          key: ${{ runner.os }}-openwrt-staging-${{ env.SDK_VER }}
 
       - name: Initialization environment
         run: |
-          wget ${{ matrix.sdk_url }}
-          file_name=$(echo ${{ matrix.sdk_url }} | awk -F/ '{print $NF}')
+          wget ${{ env.SDK_URL }}
+          file_name=$(echo ${{ env.SDK_URL }} | awk -F/ '{print $NF}')
           mkdir sdk
           if [[ $file_name == *.tar.xz ]]; then
             tar -xJf $file_name -C ./sdk --strip-components=1
@@ -195,11 +186,11 @@ jobs:
 
           cat > feeds.conf.default << EOF
           src-link mypackage ${GITHUB_WORKSPACE}/packages
-          src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ matrix.sdk_ver }}
-          src-git packages https://github.com/openwrt/packages.git;openwrt-${{ matrix.sdk_ver }}
-          src-git luci https://github.com/openwrt/luci.git;openwrt-${{ matrix.luci_ver }}
-          src-git routing https://github.com/openwrt/routing.git;openwrt-${{ matrix.sdk_ver }}
-          src-git telephony https://github.com/openwrt/telephony.git;openwrt-${{ matrix.sdk_ver }}
+          src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ env.SDK_VER }}
+          src-git packages https://github.com/openwrt/packages.git;openwrt-${{ env.SDK_VER }}
+          src-git luci https://github.com/openwrt/luci.git;openwrt-${{ env.LUCI_VER }}
+          src-git routing https://github.com/openwrt/routing.git;openwrt-${{ env.SDK_VER }}
+          src-git telephony https://github.com/openwrt/telephony.git;openwrt-${{ env.SDK_VER }}
           EOF
           
           ./scripts/feeds update -a
@@ -235,9 +226,8 @@ jobs:
           echo " "
           echo " "
           
-      - name: Compile luci-packages
+      - name: Compile ${{ matrix.package }}
         id: compile
-        if: steps.download_luci.outputs.status == 'success'
         run: |
           cd sdk
           echo "CONFIG_ALL_NONSHARED=n" > .config
@@ -245,48 +235,70 @@ jobs:
           echo "CONFIG_ALL=n" >> .config
           echo "CONFIG_AUTOREMOVE=n" >> .config
           echo "CONFIG_LUCI_LANG_zh_Hans=n" >> .config
-          echo "CONFIG_PACKAGE_luci-app-adguardhome=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-cpu-status=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-log-viewer=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-natmapt=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-temp-status=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-vlmcsd=m" >> .config
+          echo "CONFIG_PACKAGE_${{ matrix.package }}=m" >> .config
           make defconfig
+          export MAKEFLAGS="-j$(( $(nproc)*2 )) -Otarget"
           echo " "
-          echo "make package/luci-app-adguardhome/{clean,compile} -j$(nproc)"
-          make package/luci-app-adguardhome/{clean,compile} -j$(nproc) V=s
-          echo " "
-          echo "make package/luci-app-vlmcsd/{clean,compile} -j$(nproc)"
-          make package/luci-app-vlmcsd/{clean,compile} -j$(nproc) V=s          
-          echo " "
-          echo "make package/luci-app-cpu-status/{clean,compile} -j$(nproc)"
-          make package/luci-app-cpu-status/{clean,compile} -j$(nproc) V=s
-          echo " "
-          echo "make package/luci-app-log/{clean,compile} -j$(nproc)"
-          make package/luci-app-log/{clean,compile} -j$(nproc) V=s
-          echo " "
-          echo "make package/luci-app-natmapt/{clean,compile} -j$(nproc)"
-          make package/luci-app-natmapt/{clean,compile} -j$(nproc) V=s
-          echo " "
-          echo "make package/luci-app-temp-status/{clean,compile} -j$(nproc)"
-          make package/luci-app-temp-status/{clean,compile} -j$(nproc) V=s
+          echo "make package/${{ matrix.package }}/{clean,compile} -j$(nproc)"
+          make package/${{ matrix.package }}/{clean,compile} V=s
           echo " "
 
-          mkdir -p ${GITHUB_WORKSPACE}/mypackage
-          mv bin/packages/x86_64/mypackage/* ${GITHUB_WORKSPACE}/mypackage/
-          echo "📂 已移动产物到: ${GITHUB_WORKSPACE}/mypackage"
-          realpath "${GITHUB_WORKSPACE}/mypackage"
-          ls -lh "${GITHUB_WORKSPACE}/mypackage"
-
-          find "${GITHUB_WORKSPACE}/mypackage" -type f -name "*.ipk" -printf "%p\n"
-          rm -f ../mypackage/natmapt_*.ipk || true
-          rm -f ../mypackage/vlmcsd_*.ipk || true
-          make clean
-          rm .config .config.old
-          rm -rf feeds/mypackage feeds/mypackage.*
-          cd ..
+          mkdir -p ${GITHUB_WORKSPACE}/upload/${{ matrix.package }}
+          cp bin/packages/*/mypackage/${{ matrix.package }}*.ipk ${GITHUB_WORKSPACE}/upload/${{ matrix.package }}/ || true
           echo "status=success" >> $GITHUB_OUTPUT
-          echo "FIRMWARE=$PWD" >> $GITHUB_ENV
+
+      - name: Upload ${{ matrix.package }} artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.package }}
+          path: upload/${{ matrix.package }}
+
+  job_merge_luci_packages:
+    name: Merge luci packages
+    needs: [job_check, job_build_luci_pack]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: needs.job_build_luci_pack.result == 'success'
+    steps:
+      - name: Download artifacts from all jobs
+        uses: actions/download-artifact@v5
+        with:
+          path: merged_packages
+
+      - name: Download prebuilt luci packages
+        id: download_luci
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+        run: |
+          set -e
+          mkdir -p "${GITHUB_WORKSPACE}/mypackage"
+
+          download_latest() {
+            local repo=$1
+            local pattern=$2
+            local name=$3
+            echo ">>> Processing $name from $repo"
+            tag=$(gh release list --repo "$repo" --limit 1 --json tagName --jq '.[0].tagName')
+            echo "Latest tag for $name: $tag"
+            gh release download "$tag" \
+              --repo "$repo" \
+              --pattern "$pattern" \
+              --dir "${GITHUB_WORKSPACE}/mypackage" \
+              --clobber
+          }
+
+          download_latest "Jackie264/luci-theme-argon" "luci-theme-argon*_all.ipk" "luci-theme-argon"
+          download_latest "Jackie264/luci-app-advanced-reboot" "luci-app-advanced-reboot*_all.ipk" "luci-app-advanced-reboot"
+          download_latest "Jackie264/openwrt-passwall2" "luci-app-passwall2*_all.ipk" "luci-app-passwall2"
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Organize merged packages
+        run: |
+          mkdir -p upload/luci-packages
+          find merged_packages -type f -name "*.ipk" -exec cp {} upload/luci-packages/ \;
+          cp ${GITHUB_WORKSPACE}/mypackage/*.ipk upload/luci-packages/ || true
+          ls -lh upload/luci-packages
 
       - name: Download release.txt
         uses: actions/download-artifact@v5
@@ -295,10 +307,9 @@ jobs:
           path: ${{ github.workspace }}
 
       - name: Fix missing versions from built ipks
-        if: steps.compile.outputs.status == 'success'
         run: |
           out="${GITHUB_WORKSPACE}/release.txt"
-          for ipk in $(find "${GITHUB_WORKSPACE}/mypackage" -type f -name "luci-*.ipk"); do
+          for ipk in $(find "${GITHUB_WORKSPACE}/upload/luci-packages" -type f -name "luci-*.ipk"); do
             fname=$(basename "$ipk")
             pkg=$(echo "$fname" | cut -d_ -f1)
             ver=$(echo "$fname" | cut -d_ -f2)
@@ -312,16 +323,15 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: release-info-fixed
-          path: release.txt
-    
-      - name: Upload mypackage ipks to release
+          path: ${{ github.workspace }}/release.txt
+
+      - name: Upload merged luci packages to release
         uses: softprops/action-gh-release@v2
-        if: steps.compile.outputs.status == 'success'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{needs.job_check.outputs.release_time}}
-          files: ${{ env.FIRMWARE }}/mypackage/*.ipk
+          tag_name: ${{ needs.job_check.outputs.release_time }}
+          files: upload/luci-packages/*.ipk
 
   job_auto_compile_core:
     name: Auto compile core [${{ matrix.platform }}]
@@ -338,73 +348,13 @@ jobs:
             url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
             sdk_ver: "24.10"
 
-          #- platform: aarch64_generic
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/rockchip/armv8/openwrt-sdk-24.10.3-rockchip-armv8_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
           - platform: aarch64_cortex-a53
-            url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/mvebu/cortexa53/openwrt-sdk-24.10.3-mvebu-cortexa53_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+            url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/qualcommax/ipq807x/openwrt-sdk-24.10.3-qualcommax-ipq807x_gcc-13.3.0_musl.Linux-x86_64.tar.zst
             sdk_ver: "24.10"
-
-          #- platform: aarch64_cortex-a72
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/mvebu/cortexa72/openwrt-sdk-24.10.3-mvebu-cortexa72_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: arm_cortex-a5_vfpv4
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/at91/sama5/openwrt-sdk-24.10.3-at91-sama5_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: arm_cortex-a7
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/mediatek/mt7629/openwrt-sdk-24.10.3-mediatek-mt7629_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
 
           - platform: arm_cortex-a7_neon-vfpv4
-            url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/sunxi/cortexa7/openwrt-sdk-24.10.3-sunxi-cortexa7_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
+            url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/ipq40xx/generic/openwrt-sdk-24.10.3-ipq40xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
             sdk_ver: "24.10"
-
-          #- platform: arm_cortex-a8_vfpv3
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/sunxi/cortexa8/openwrt-sdk-24.10.3-sunxi-cortexa8_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: arm_cortex-a9
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/bcm53xx/generic/openwrt-sdk-24.10.3-bcm53xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: arm_cortex-a9_neon
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/zynq/generic/openwrt-sdk-24.10.3-zynq-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: arm_cortex-a9_vfpv3-d16
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/mvebu/cortexa9/openwrt-sdk-24.10.3-mvebu-cortexa9_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: arm_cortex-a15_neon-vfpv4
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/ipq806x/generic/openwrt-sdk-24.10.3-ipq806x-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: mips_24kc
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/ath79/generic/openwrt-sdk-24.10.3-ath79-generic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: mips_4kec
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/realtek/rtl838x/openwrt-sdk-24.10.3-realtek-rtl838x_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: mips_mips32
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/bcm53xx/generic/openwrt-sdk-24.10.3-bcm53xx-generic_gcc-13.3.0_musl_eabi.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: mipsel_24kc
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/ramips/rt288x/openwrt-sdk-24.10.3-ramips-rt288x_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: mipsel_74kc
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/ramips/rt3883/openwrt-sdk-24.10.3-ramips-rt3883_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
-
-          #- platform: mipsel_mips32
-          #  url_sdk: https://downloads.openwrt.org/releases/24.10.3/targets/bcm47xx/generic/openwrt-sdk-24.10.3-bcm47xx-generic_gcc-13.3.0_musl.Linux-x86_64.tar.zst
-          #  sdk_ver: "24.10"
 
     steps:
       - name: Initialization ${{ matrix.platform }} compile environment
