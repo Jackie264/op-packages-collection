@@ -167,35 +167,6 @@ jobs:
           path: sdk/staging_dir
           key: ${{ runner.os }}-openwrt-staging-${{ env.SDK_VER }}
 
-      - name: Download prebuilt luci packages
-        id: download_luci
-        env:
-          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
-        run: |
-          set -e
-
-          download_latest() {
-            local repo=$1
-            local pattern=$2
-            local name=$3
-
-            echo ">>> Processing $name from $repo"
-            tag=$(gh release list --repo "$repo" --limit 1 --json tagName --jq '.[0].tagName')
-            echo "Latest tag for $name: $tag"
-
-            mkdir -p "${GITHUB_WORKSPACE}/mypackage"
-            gh release download "$tag" \
-              --repo "$repo" \
-              --pattern "$pattern" \
-              --dir "${GITHUB_WORKSPACE}/mypackage" \
-              --clobber
-          }
-
-          download_latest "Jackie264/luci-theme-argon" "luci-theme-argon*_all.ipk" "luci-theme-argon"
-          download_latest "Jackie264/luci-app-advanced-reboot" "luci-app-advanced-reboot*_all.ipk" "luci-app-advanced-reboot"
-          download_latest "Jackie264/openwrt-passwall2" "luci-app-passwall2*_all.ipk" "luci-app-passwall2"
-          echo "status=success" >> $GITHUB_OUTPUT
-
       - name: Initialization environment
         run: |
           wget ${{ env.SDK_URL }}
@@ -290,17 +261,47 @@ jobs:
         with:
           path: merged_packages
 
+      - name: Download prebuilt luci packages
+        id: download_luci
+        env:
+          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
+        run: |
+          set -e
+          mkdir -p "${GITHUB_WORKSPACE}/mypackage"
+
+          download_latest() {
+            local repo=$1
+            local pattern=$2
+            local name=$3
+            echo ">>> Processing $name from $repo"
+            tag=$(gh release list --repo "$repo" --limit 1 --json tagName --jq '.[0].tagName')
+            echo "Latest tag for $name: $tag"
+            gh release download "$tag" \
+              --repo "$repo" \
+              --pattern "$pattern" \
+              --dir "${GITHUB_WORKSPACE}/mypackage" \
+              --clobber
+          }
+
+          download_latest "Jackie264/luci-theme-argon" "luci-theme-argon*_all.ipk" "luci-theme-argon"
+          download_latest "Jackie264/luci-app-advanced-reboot" "luci-app-advanced-reboot*_all.ipk" "luci-app-advanced-reboot"
+          download_latest "Jackie264/openwrt-passwall2" "luci-app-passwall2*_all.ipk" "luci-app-passwall2"
+          echo "status=success" >> $GITHUB_OUTPUT
+
       - name: Organize merged packages
         run: |
           mkdir -p upload/luci-packages
           find merged_packages -type f -name "*.ipk" -exec cp {} upload/luci-packages/ \;
+          cp ${GITHUB_WORKSPACE}/mypackage/*.ipk upload/luci-packages/ || true
           ls -lh upload/luci-packages
 
-      - name: Upload merged luci packages as artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload merged luci packages to release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: luci-packages-merged
-          path: upload/luci-packages
+          tag_name: ${{ needs.job_check.outputs.release_time }}
+          files: upload/luci-packages/*.ipk
 
   job_auto_compile_core:
     name: Auto compile core [${{ matrix.platform }}]
