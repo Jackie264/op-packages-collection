@@ -160,20 +160,21 @@ jobs:
       - name: Cache OpenWrt dl
         uses: actions/cache@v4
         with:
-          path: sdk/dl
+          path: dl
           key: ${{ runner.os }}-openwrt-dl-${{ env.SDK_VER }}
 
       - name: Cache OpenWrt staging_dir
         uses: actions/cache@v4
         with:
-          path: sdk/staging_dir
+          path: staging_dir
           key: ${{ runner.os }}-openwrt-staging-${{ env.SDK_VER }}
 
       - name: Initialization environment
         run: |
           wget ${{ env.SDK_URL }}
           file_name=$(echo ${{ env.SDK_URL }} | awk -F/ '{print $NF}')
-          mkdir sdk
+          rm -rf sdk
+          mkdir -p sdk
           if [[ $file_name == *.tar.xz ]]; then
             tar -xJf $file_name -C ./sdk --strip-components=1
           elif [[ $file_name == *.tar.zst ]]; then
@@ -183,7 +184,7 @@ jobs:
             exit 1
           fi
           cd sdk
-
+          mkdir -p dl staging_dir
           cat > feeds.conf.default << EOF
           src-link mypackage ${GITHUB_WORKSPACE}/packages
           src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ env.SDK_VER }}
