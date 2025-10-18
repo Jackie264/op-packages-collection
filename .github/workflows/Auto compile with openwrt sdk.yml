@@ -257,6 +257,11 @@ jobs:
           name: ${{ matrix.package }}
           path: upload/${{ matrix.package }}
 
+      - name: Ensure cache dirs exist
+        run: |
+          mkdir -p sdk/dl sdk/staging_dir
+          ls -lah sdk/dl sdk/staging_dir || true
+
   job_merge_luci_packages:
     name: Merge luci packages
     needs: [job_check, job_build_luci_pack]
