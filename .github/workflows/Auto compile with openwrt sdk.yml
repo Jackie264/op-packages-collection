@@ -108,7 +108,7 @@ jobs:
           path: release.txt
 
   job_build_luci_pack:
-    name: Build luci packages [${{ matrix.luci_ver }}]
+    name: Build luci packages [${{ env.LUCI_VER }}]
     permissions:
       contents: write
     needs: job_check
@@ -117,12 +117,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - sdk_ver: "24.10"
-            luci_ver: "24.10"
-            sdk_url: https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst
+        package:
+          - luci-app-adguardhome
+          - luci-app-vlmcsd
+          - luci-app-cpu-status
+          - luci-app-log
+          - luci-app-natmapt
+          - luci-app-temp-status
+
+    env:
+      SDK_VER: "24.10"
+      LUCI_VER: "24.10"
+      SDK_URL: "https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+
     steps:
-      - name: Install packages
+      - name: Install build dependencies
         run: |
           sudo -E rm -rf /usr/share/dotnet /etc/mysql /etc/php /usr/local/lib/android
           echo "Install packages"
@@ -148,6 +157,18 @@ jobs:
         run: |
           git submodule sync --recursive
           git submodule update --init --recursive
+
+      - name: Cache OpenWrt dl
+        uses: actions/cache@v4
+        with:
+          path: sdk/dl
+          key: ${{ runner.os }}-openwrt-dl-${{ env.SDK_VER }}
+
+      - name: Cache OpenWrt staging_dir
+        uses: actions/cache@v4
+        with:
+          path: sdk/staging_dir
+          key: ${{ runner.os }}-openwrt-staging-${{ env.SDK_VER }}
 
       - name: Download prebuilt luci packages
         id: download_luci
@@ -180,8 +201,8 @@ jobs:
 
       - name: Initialization environment
         run: |
-          wget ${{ matrix.sdk_url }}
-          file_name=$(echo ${{ matrix.sdk_url }} | awk -F/ '{print $NF}')
+          wget ${{ env.SDK_URL }}
+          file_name=$(echo ${{ env.SDK_URL }} | awk -F/ '{print $NF}')
           mkdir sdk
           if [[ $file_name == *.tar.xz ]]; then
             tar -xJf $file_name -C ./sdk --strip-components=1
@@ -195,11 +216,11 @@ jobs:
 
           cat > feeds.conf.default << EOF
           src-link mypackage ${GITHUB_WORKSPACE}/packages
-          src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ matrix.sdk_ver }}
-          src-git packages https://github.com/openwrt/packages.git;openwrt-${{ matrix.sdk_ver }}
-          src-git luci https://github.com/openwrt/luci.git;openwrt-${{ matrix.luci_ver }}
-          src-git routing https://github.com/openwrt/routing.git;openwrt-${{ matrix.sdk_ver }}
-          src-git telephony https://github.com/openwrt/telephony.git;openwrt-${{ matrix.sdk_ver }}
+          src-git base https://github.com/openwrt/openwrt.git;openwrt-${{ env.SDK_VER }}
+          src-git packages https://github.com/openwrt/packages.git;openwrt-${{ env.SDK_VER }}
+          src-git luci https://github.com/openwrt/luci.git;openwrt-${{ env.LUCI_VER }}
+          src-git routing https://github.com/openwrt/routing.git;openwrt-${{ env.SDK_VER }}
+          src-git telephony https://github.com/openwrt/telephony.git;openwrt-${{ env.SDK_VER }}
           EOF
           
           ./scripts/feeds update -a
@@ -235,7 +256,7 @@ jobs:
           echo " "
           echo " "
           
-      - name: Compile luci-packages
+      - name: Compile ${{ matrix.package }}
         id: compile
         if: steps.download_luci.outputs.status == 'success'
         run: |
@@ -245,83 +266,44 @@ jobs:
           echo "CONFIG_ALL=n" >> .config
           echo "CONFIG_AUTOREMOVE=n" >> .config
           echo "CONFIG_LUCI_LANG_zh_Hans=n" >> .config
-          echo "CONFIG_PACKAGE_luci-app-adguardhome=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-cpu-status=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-log-viewer=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-natmapt=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-temp-status=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-vlmcsd=m" >> .config
+          echo "CONFIG_PACKAGE_${{ matrix.package }}=m" >> .config
           make defconfig
+          export MAKEFLAGS="-j$(( $(nproc)*2 )) -Otarget"
           echo " "
-          echo "make package/luci-app-adguardhome/{clean,compile} -j$(nproc)"
-          make package/luci-app-adguardhome/{clean,compile} -j$(nproc) V=s
-          echo " "
-          echo "make package/luci-app-vlmcsd/{clean,compile} -j$(nproc)"
-          make package/luci-app-vlmcsd/{clean,compile} -j$(nproc) V=s          
-          echo " "
-          echo "make package/luci-app-cpu-status/{clean,compile} -j$(nproc)"
-          make package/luci-app-cpu-status/{clean,compile} -j$(nproc) V=s
-          echo " "
-          echo "make package/luci-app-log/{clean,compile} -j$(nproc)"
-          make package/luci-app-log/{clean,compile} -j$(nproc) V=s
-          echo " "
-          echo "make package/luci-app-natmapt/{clean,compile} -j$(nproc)"
-          make package/luci-app-natmapt/{clean,compile} -j$(nproc) V=s
-          echo " "
-          echo "make package/luci-app-temp-status/{clean,compile} -j$(nproc)"
-          make package/luci-app-temp-status/{clean,compile} -j$(nproc) V=s
+          echo "make package/${{ matrix.package }}/{clean,compile} -j$(nproc)"
+          make package/${{ matrix.package }}/{clean,compile} V=s
           echo " "
 
-          mkdir -p ${GITHUB_WORKSPACE}/mypackage
-          mv bin/packages/x86_64/mypackage/* ${GITHUB_WORKSPACE}/mypackage/
-          echo "📂 已移动产物到: ${GITHUB_WORKSPACE}/mypackage"
-          realpath "${GITHUB_WORKSPACE}/mypackage"
-          ls -lh "${GITHUB_WORKSPACE}/mypackage"
+          mkdir -p ${GITHUB_WORKSPACE}/upload/${{ matrix.package }}
+          cp bin/packages/*/mypackage/${{ matrix.package }}*.ipk ${GITHUB_WORKSPACE}/upload/${{ matrix.package }}/ || true
 
-          find "${GITHUB_WORKSPACE}/mypackage" -type f -name "*.ipk" -printf "%p\n"
-          rm -f ../mypackage/natmapt_*.ipk || true
-          rm -f ../mypackage/vlmcsd_*.ipk || true
-          make clean
-          rm .config .config.old
-          rm -rf feeds/mypackage feeds/mypackage.*
-          cd ..
-          echo "status=success" >> $GITHUB_OUTPUT
-          echo "FIRMWARE=$PWD" >> $GITHUB_ENV
-
-      - name: Download release.txt
-        uses: actions/download-artifact@v5
-        with:
-          name: release-info
-          path: ${{ github.workspace }}
-
-      - name: Fix missing versions from built ipks
-        if: steps.compile.outputs.status == 'success'
-        run: |
-          out="${GITHUB_WORKSPACE}/release.txt"
-          for ipk in $(find "${GITHUB_WORKSPACE}/mypackage" -type f -name "luci-*.ipk"); do
-            fname=$(basename "$ipk")
-            pkg=$(echo "$fname" | cut -d_ -f1)
-            ver=$(echo "$fname" | cut -d_ -f2)
-            if grep -Fq "**:minidisc: $pkg**|**unknown**" "$out"; then
-              sed -i "/$pkg/s|\*\*unknown\*\*|**$ver**|g" "$out"
-              echo "✔️ 修正 $pkg 版本号为 $ver"
-            fi
-          done
-
-      - name: Upload fixed release.txt
+      - name: Upload ${{ matrix.package }} artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-info-fixed
-          path: release.txt
-    
-      - name: Upload mypackage ipks to release
-        uses: softprops/action-gh-release@v2
-        if: steps.compile.outputs.status == 'success'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: ${{ matrix.package }}
+          path: upload/${{ matrix.package }}
+
+  job_merge_luci_packages:
+    name: Merge luci packages
+    needs: job_build_luci_pack
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts from all jobs
+        uses: actions/download-artifact@v4
         with:
-          tag_name: ${{needs.job_check.outputs.release_time}}
-          files: ${{ env.FIRMWARE }}/mypackage/*.ipk
+          path: merged_packages
+
+      - name: Organize merged packages
+        run: |
+          mkdir -p upload/luci-packages
+          find merged_packages -type f -name "*.ipk" -exec cp {} upload/luci-packages/ \;
+          ls -lh upload/luci-packages
+
+      - name: Upload merged luci packages as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: luci-packages-merged
+          path: upload/luci-packages
 
   job_auto_compile_core:
     name: Auto compile core [${{ matrix.platform }}]
