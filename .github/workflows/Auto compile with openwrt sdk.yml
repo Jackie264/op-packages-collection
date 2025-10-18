@@ -163,11 +163,11 @@ jobs:
           path: sdk/dl
           key: ${{ runner.os }}-openwrt-dl-${{ env.SDK_VER }}
 
-      - name: Cache OpenWrt staging_dir
-        uses: actions/cache@v4
-        with:
-          path: sdk/staging_dir
-          key: ${{ runner.os }}-openwrt-staging-${{ env.SDK_VER }}
+      #- name: Cache OpenWrt staging_dir
+      #  uses: actions/cache@v4
+      #  with:
+      #    path: sdk/staging_dir
+      #    key: ${{ runner.os }}-openwrt-staging-${{ env.SDK_VER }}
 
       - name: Initialization environment
         run: |
