@@ -588,7 +588,7 @@ jobs:
           tag_name: ${{needs.job_check.outputs.release_time}}
           body_path: release.txt
           files: ${{ github.workspace }}/firmware/**/*
-          overwrite: true
+          overwrite_files: true
 
       - name: Delete old releases and tags, keep latest 3
         env:
