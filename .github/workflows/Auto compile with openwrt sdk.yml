@@ -125,7 +125,7 @@ jobs:
           - luci-app-adguardhome
           - luci-app-vlmcsd
           - luci-app-cpu-status
-          - luci-app-log
+          - luci-app-log-viewer
           - luci-app-natmapt
           - luci-app-temp-status
 
