@@ -116,6 +116,8 @@ jobs:
     needs: job_check
     if: needs.job_check.outputs.has_update == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.compile.outputs.status }}
     strategy:
       fail-fast: false
       matrix:
@@ -226,7 +228,6 @@ jobs:
           
       - name: Compile ${{ matrix.package }}
         id: compile
-        if: steps.download_luci.outputs.status == 'success'
         run: |
           cd sdk
           echo "CONFIG_ALL_NONSHARED=n" > .config
@@ -244,6 +245,7 @@ jobs:
 
           mkdir -p ${GITHUB_WORKSPACE}/upload/${{ matrix.package }}
           cp bin/packages/*/mypackage/${{ matrix.package }}*.ipk ${GITHUB_WORKSPACE}/upload/${{ matrix.package }}/ || true
+          echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Upload ${{ matrix.package }} artifact
         uses: actions/upload-artifact@v4
@@ -253,11 +255,14 @@ jobs:
 
   job_merge_luci_packages:
     name: Merge luci packages
-    needs: job_build_luci_pack
+    needs: [job_check, job_build_luci_pack]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: needs.job_build_luci_pack.result == 'success'
     steps:
       - name: Download artifacts from all jobs
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           path: merged_packages
 
@@ -294,6 +299,31 @@ jobs:
           find merged_packages -type f -name "*.ipk" -exec cp {} upload/luci-packages/ \;
           cp ${GITHUB_WORKSPACE}/mypackage/*.ipk upload/luci-packages/ || true
           ls -lh upload/luci-packages
+
+      - name: Download release.txt
+        uses: actions/download-artifact@v5
+        with:
+          name: release-info
+          path: ${{ github.workspace }}
+
+      - name: Fix missing versions from built ipks
+        run: |
+          out="${GITHUB_WORKSPACE}/release.txt"
+          for ipk in $(find "${GITHUB_WORKSPACE}/upload/luci-packages" -type f -name "luci-*.ipk"); do
+            fname=$(basename "$ipk")
+            pkg=$(echo "$fname" | cut -d_ -f1)
+            ver=$(echo "$fname" | cut -d_ -f2)
+            if grep -Fq "**:minidisc: $pkg**|**unknown**" "$out"; then
+              sed -i "/$pkg/s|\*\*unknown\*\*|**$ver**|g" "$out"
+              echo "✔️ 修正 $pkg 版本号为 $ver"
+            fi
+          done
+
+      - name: Upload fixed release.txt
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-info-fixed
+          path: ${{ github.workspace }}/release.txt
 
       - name: Upload merged luci packages to release
         uses: softprops/action-gh-release@v2
