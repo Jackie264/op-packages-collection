@@ -519,7 +519,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: core_pack-${{ matrix.platform }}
-          path: upload
+          path: upload/${{ matrix.platform }}
           
       - name: Generate release info (compile side)
         id: geninfo
@@ -550,46 +550,31 @@ jobs:
           name: release-info-${{ matrix.platform }}
           path: release-info-${{ matrix.platform }}.txt
     
-  job_auto_compile_release:
-    name: Auto compile release [${{ matrix.platform }}]
+  job_release:
+    name: Publish consolidated release
     needs: [job_check, job_merge_luci_packages, job_auto_compile_core]
     permissions:
       contents: write
-    strategy:
-      matrix:
-        platform: [x86_64, aarch64_cortex-a53, arm_cortex-a7_neon-vfpv4]
     runs-on: ubuntu-latest
-    steps:
-      - name: Download core packages artifact
-        uses: actions/download-artifact@v5
-        with:
-          name: core_pack-${{ matrix.platform }}
-          path: ${{ github.workspace }}/core_pack
-          
-      - name: Download fixed release.txt
-        uses: actions/download-artifact@v5
-        with:
-          name: release-info-fixed
-          path: ${{ github.workspace }}
     
-      - name: Download platform release info
+    steps:
+      - name: Download all core packages
         uses: actions/download-artifact@v5
         with:
-          name: release-info-${{ matrix.platform }}
-          path: ${{ github.workspace }}
+          path: release_assets
 
       - name: Merge release info
         run: |
-          cat release-info-${{ matrix.platform }}.txt >> release.txt
+          cat release_assets/release-info-*.txt > release.txt
 
-      - name: Upload firmware to release
+      - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{needs.job_check.outputs.release_time}}
+          tag_name: ${{ needs.job_check.outputs.release_time }}
           body_path: release.txt
-          files: ${{ github.workspace }}/core_pack/**/*
+          files: release_assets/core_pack-*/*/packages/*.ipk
 
       - name: Delete old releases and tags, keep latest 3
         env:
