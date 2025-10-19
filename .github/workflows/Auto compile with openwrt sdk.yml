@@ -380,7 +380,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: sdk/dl
-          key: ${{ runner.os }}-openwrt-dl-${{ matrix.SDK_VER }}
+          key: ${{ runner.os }}-openwrt-${{ matrix.sdk_ver }}-${{ matrix.platform }}
 
       - name: ${{ matrix.platform }} sdk download
         run: |
