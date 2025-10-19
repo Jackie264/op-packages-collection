@@ -561,11 +561,11 @@ jobs:
       - name: Download all core packages
         uses: actions/download-artifact@v5
         with:
-          path: release_assets
+          path: ${{ github.workspace }}/release_assets
 
       - name: Merge release info
         run: |
-          find release_assets -name "release-info-*.txt" -exec cat {} + > release.txt
+          cat ${{ github.workspace }}/release_assets/release-info-${{ matrix.platform }}.txt >> release.txt
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -574,7 +574,7 @@ jobs:
         with:
           tag_name: ${{ needs.job_check.outputs.release_time }}
           body_path: release.txt
-          files: release_assets/core_pack-*/*/packages/*.ipk
+          files: ${{ github.workspace }}/release_assets/**/*.ipk
 
       - name: Delete old releases and tags, keep latest 3
         env:
