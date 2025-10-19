@@ -565,7 +565,7 @@ jobs:
 
       - name: Merge release info
         run: |
-          cat release_assets/release-info-*.txt > release.txt
+          find release_assets -name "release-info-*.txt" -exec cat {} + > release.txt
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
