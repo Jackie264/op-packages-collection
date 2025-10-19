@@ -524,7 +524,7 @@ jobs:
       - name: Generate release info (compile side)
         id: geninfo
         run: |
-          out="release-info-${{ matrix.platform }}.txt"
+          out="release-info-corepack.txt"
           echo "### Packages Version" >> "$out"
           echo "**Package name**|**Version**" >> "$out"
           echo "-|-" >> "$out"
@@ -547,8 +547,8 @@ jobs:
         if: steps.geninfo.outputs.status == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: release-info-${{ matrix.platform }}
-          path: release-info-${{ matrix.platform }}.txt
+          name: release-info-corepack
+          path: release-info-corepack.txt
     
   job_release:
     name: Publish consolidated release
@@ -565,7 +565,7 @@ jobs:
 
       - name: Merge release info
         run: |
-          cat ${{ github.workspace }}/release_assets/release-info-${{ matrix.platform }}.txt >> release.txt
+          cat ${{ github.workspace }}/release_assets/release-info-corepack.txt >> release.txt
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
