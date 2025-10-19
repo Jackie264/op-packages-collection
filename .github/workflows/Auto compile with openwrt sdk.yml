@@ -547,7 +547,7 @@ jobs:
         if: steps.geninfo.outputs.status == 'success'
         uses: actions/upload-artifact@v4
         with:
-          name: release-info-corepack
+          name: release-info-${{ matrix.platform }}
           path: release-info-${{ matrix.platform }}.txt
     
   job_release:
