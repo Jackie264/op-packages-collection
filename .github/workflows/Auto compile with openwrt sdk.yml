@@ -504,8 +504,8 @@ jobs:
         id: organize
         if: steps.download_depends.outputs.status == 'success'
         run: |
+          mkdir -p ${GITHUB_WORKSPACE}/upload/${{ matrix.platform }}/packages
           cd sdk
-          mkdir -p upload/${{ matrix.platform }}/packages
           cp bin/packages/*/base/stuntman-client*.ipk ${GITHUB_WORKSPACE}/upload/${{ matrix.platform }}/packages/ || true
           cp bin/packages/*/base/natmapt*.ipk ${GITHUB_WORKSPACE}/upload/${{ matrix.platform }}/packages/ || true
           cp bin/packages/*/base/vlmcsd*.ipk ${GITHUB_WORKSPACE}/upload/${{ matrix.platform }}/packages/ || true
