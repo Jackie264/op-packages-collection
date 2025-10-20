@@ -297,11 +297,21 @@ jobs:
           echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Organize merged packages
+        id: organize
         run: |
           mkdir -p upload/luci-packages
           find merged_packages -type f -name "*.ipk" -exec cp {} upload/luci-packages/ \;
           cp ${GITHUB_WORKSPACE}/mypackage/*.ipk upload/luci-packages/ || true
           ls -lh upload/luci-packages
+          echo "status=success" >> $GITHUB_OUTPUT
+
+      - name: Normalize IPK filenames
+        if: steps.organize.outputs.status == 'success'
+        id: rename
+        uses: Jackie264/actions-repo/rename-ipk@latest
+        with:
+          target_dir: upload/luci-packages
+          mode: strip
 
       - name: Download release.txt
         uses: actions/download-artifact@v5
@@ -334,7 +344,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.job_check.outputs.release_time }}
-          files: upload/luci-packages/*.ipk
+          files: ${{ steps.rename.outputs.files }}
 
   job_auto_compile_core:
     name: Auto compile core [${{ matrix.platform }}]
