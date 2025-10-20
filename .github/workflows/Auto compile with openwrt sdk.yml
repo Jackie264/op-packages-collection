@@ -344,7 +344,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.job_check.outputs.release_time }}
-          files: ${GITHUB_WORKSPACE}/upload/luci-packages/*.ipk
+          files: upload/luci-packages/*.ipk
 
   job_auto_compile_core:
     name: Auto compile core [${{ matrix.platform }}]
