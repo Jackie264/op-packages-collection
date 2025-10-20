@@ -561,11 +561,27 @@ jobs:
       - name: Download all core packages
         uses: actions/download-artifact@v5
         with:
-          path: ${{ github.workspace }}/release_assets
+          pattern: core_pack-*
+          path: ${{ github.workspace }}/core_pack
+          merge-multiple: true
 
+      - name: Download fiexed release info
+        uses: actions/download-artifact@v5
+        with:
+          name: release-info-fixed
+          path: ${{ github.workspace }}
+
+      - name: Download one platform release info
+        uses: actions/download-artifact@v5
+        with:
+          name: release-info-x86_64
+          path: ${{ github.workspace }}
+    
       - name: Merge release info
         run: |
-          cat ${{ github.workspace }}/release_assets/release-info-x86_64.txt >> release.txt
+          cat release.txt release-info-x86_64.txt > release-final.txt
+          echo "✅ Final release info generated:"
+          cat release-final.txt
 
       - name: Upload to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -573,8 +589,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.job_check.outputs.release_time }}
-          body_path: release.txt
-          files: ${{ github.workspace }}/release_assets/**/*.ipk
+          body_path: release-final.txt
+          files: ${{ github.workspace }}/core_pack/**/*
 
       - name: Delete old releases and tags, keep latest 3
         env:
