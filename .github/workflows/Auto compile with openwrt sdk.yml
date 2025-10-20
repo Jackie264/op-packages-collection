@@ -178,8 +178,8 @@ jobs:
             exit 1
           fi
           cd sdk
-          mkdir -p dl staging_dir
-          ls -lah dl staging_dir || true
+          mkdir -p dl
+          ls -lah dl || true
           
           cat > feeds.conf.default << EOF
           src-link mypackage ${GITHUB_WORKSPACE}/packages
@@ -252,8 +252,8 @@ jobs:
 
       - name: Ensure cache dirs exist
         run: |
-          mkdir -p sdk/dl sdk/staging_dir
-          ls -lah sdk/dl sdk/staging_dir || true
+          mkdir -p sdk/dl
+          ls -lah sdk/dl || true
 
   job_merge_luci_packages:
     name: Merge luci packages
@@ -481,6 +481,11 @@ jobs:
           make package/vlmcsd/{clean,compile} -j$(nproc) V=s
           echo "status=success" >> $GITHUB_OUTPUT
 
+      - name: Ensure cache dirs exist
+        run: |
+          mkdir -p sdk/dl
+          ls -lah sdk/dl || true
+          
       - name: Download passwall2 dependencies
         id: download_depends
         if: steps.compile.outputs.status == 'success'
