@@ -1,6 +1,6 @@
 [submodule "packages/openwrt-passwall2"]
 	path = packages/openwrt-passwall2
-	url = https://github.com/Jackie264/openwrt-passwall2
+	url = https://github.com/OneNAS-space/openwrt-passwall2
 
 [submodule "packages/openwrt-natmapt"]
 	path = packages/openwrt-natmapt
@@ -34,7 +34,7 @@
 	url = https://github.com/Jackie264/openwrt-passwall-packages
 [submodule "packages/luci-app-adguardhome"]
 	path = packages/luci-app-adguardhome
-	url = https://github.com/Jackie264/luci-app-adguardhome
+	url = https://github.com/OneNAS-space/luci-app-adguardhome
 [submodule "packages/luci-app-vlmcsd"]
 	path = packages/luci-app-vlmcsd
 	url = https://github.com/Jackie264/luci-app-vlmcsd
