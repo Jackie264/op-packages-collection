@@ -20,7 +20,7 @@ on:
         default: 'false'
 env:
   TZ: Asia/Shanghai
-  passwall2: Jackie264/openwrt-passwall2
+  passwall2: OneNAS-space/openwrt-passwall2
   passwall2packs: Jackie264/openwrt-passwall-packages
   vlmcsd: Jackie264/vlmcsd
   SDK_VER: "24.10"
@@ -291,9 +291,9 @@ jobs:
           }
 
           download_latest "Jackie264/luci-theme-argon" "luci-theme-argon*_all.ipk" "luci-theme-argon"
-          download_latest "Jackie264/luci-app-adguardhome" "luci-app-adguardhome*_all.ipk" "luci-app-adguardhome"
+          download_latest "OneNAS-space/luci-app-adguardhome" "luci-app-adguardhome*_all.ipk" "luci-app-adguardhome"
           download_latest "Jackie264/luci-app-advanced-reboot" "luci-app-advanced-reboot*_all.ipk" "luci-app-advanced-reboot"
-          download_latest "Jackie264/openwrt-passwall2" "luci-app-passwall2*_all.ipk" "luci-app-passwall2"
+          download_latest "OneNAS-space/openwrt-passwall2" "luci-app-passwall2*_all.ipk" "luci-app-passwall2"
           echo "status=success" >> $GITHUB_OUTPUT
 
       - name: Organize merged packages
@@ -503,11 +503,11 @@ jobs:
           GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
         run: |
           mkdir -p depends_package
-          tag=$(gh release list --repo Jackie264/openwrt-passwall2 --limit 1 --json tagName --jq '.[0].tagName')
+          tag=$(gh release list --repo OneNAS-space/openwrt-passwall2 --limit 1 --json tagName --jq '.[0].tagName')
           echo "Using tag: $tag"
 
           gh release download "$tag" \
-            --repo Jackie264/openwrt-passwall2 \
+            --repo OneNAS-space/openwrt-passwall2 \
             --pattern "passwall_packages_ipk_${{ matrix.platform }}.zip" \
             --dir depends_package \
             --clobber
