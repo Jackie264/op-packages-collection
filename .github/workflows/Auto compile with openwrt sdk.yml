@@ -26,6 +26,8 @@ env:
   SDK_VER: "24.10"
   LUCI_VER: "24.10"
   SDK_URL: "https://downloads.openwrt.org/releases/24.10.3/targets/x86/64/openwrt-sdk-24.10.3-x86-64_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+  GH_TOKEN_ORG: ${{ github.token }}
+  GH_TOKEN_USER: ${{ secrets.DL_RELEASE_ASSET }}
 
 jobs:
   job_check:
@@ -270,16 +272,28 @@ jobs:
 
       - name: Download prebuilt luci packages
         id: download_luci
-        env:
-          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
         run: |
           set -e
           mkdir -p "${GITHUB_WORKSPACE}/mypackage"
+
+          # 根据 repo 自动切换 GH_TOKEN
+          switch_token() {
+            local repo=$1
+            if [[ "$repo" == OneNAS-space/* ]]; then
+              export GH_TOKEN="$GH_TOKEN_ORG"
+              echo ">>> [$repo] 使用 GITHUB_TOKEN (org repo)"
+            else
+              export GH_TOKEN="$GH_TOKEN_USER"
+              echo ">>> [$repo] 使用 PAT (user repo)"
+            fi
+          }
 
           download_latest() {
             local repo=$1
             local pattern=$2
             local name=$3
+            switch_token "$repo"
+
             echo ">>> Processing $name from $repo"
             tag=$(gh release list --repo "$repo" --limit 1 --json tagName --jq '.[0].tagName')
             echo "Latest tag for $name: $tag"
@@ -499,15 +513,29 @@ jobs:
       - name: Download passwall2 dependencies
         id: download_depends
         if: steps.compile.outputs.status == 'success'
-        env:
-          GH_TOKEN: ${{ secrets.DL_RELEASE_ASSET }}
         run: |
+          set -e
           mkdir -p depends_package
+
+          switch_token() {
+            local repo=$1
+            if [[ "$repo" == OneNAS-space/* ]]; then
+              export GH_TOKEN="$GH_TOKEN_ORG"
+              echo ">>> [$repo] 使用 GITHUB_TOKEN (org repo)"
+            else
+              export GH_TOKEN="$GH_TOKEN_USER"
+              echo ">>> [$repo] 使用 PAT (user repo)"
+            fi
+          }
+          
+          REPO="OneNAS-space/openwrt-passwall2"
+          switch_token "$REPO"
+
           tag=$(gh release list --repo OneNAS-space/openwrt-passwall2 --limit 1 --json tagName --jq '.[0].tagName')
           echo "Using tag: $tag"
 
           gh release download "$tag" \
-            --repo OneNAS-space/openwrt-passwall2 \
+            --repo "$REPO" \
             --pattern "passwall_packages_ipk_${{ matrix.platform }}.zip" \
             --dir depends_package \
             --clobber
